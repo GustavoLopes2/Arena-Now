@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "762842763865",
+    "project_id": "arenanow-561e7",
+    "storage_bucket": "arenanow-561e7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:762842763865:android:339f68b587c5487b959748",
+        "android_client_info": {
+          "package_name": "com.example.arenanow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBJmWb11FA1zhP1m2LcVQiNXjvwePEoBY8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
