@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:arenanow/modules/admin/register/register_agenda_semanal_page.dart';
 
 class RegisterQuadraPage extends StatefulWidget {
   final String estabelecimentoId;
@@ -14,7 +15,7 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
   final _descricaoController = TextEditingController();
-  final _fotoController = TextEditingController(); // URL temporária
+  final _fotoController = TextEditingController();
 
   String _modalidade = 'BEACH_TENNIS';
   bool _isLoading = false;
@@ -34,7 +35,6 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
         'criadoEm': Timestamp.now(),
       });
 
-      // Armazena a foto separadamente na coleção FotoQuadra
       if (_fotoController.text.trim().isNotEmpty) {
         await FirebaseFirestore.instance.collection('foto_quadra').add({
           'quadraId': docRef.id,
@@ -46,7 +46,12 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
         const SnackBar(content: Text('Quadra cadastrada com sucesso!')),
       );
 
-      Navigator.pop(context);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => CadastrarAgendaSemanalPage(quadraId: docRef.id),
+        ),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erro ao cadastrar quadra: ${e.toString()}')),

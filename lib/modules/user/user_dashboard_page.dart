@@ -76,7 +76,7 @@ class UserDashboardPage extends StatelessWidget {
                           as Map<String, dynamic>;
                       final doc = estabelecimentos[index];
                       final nome = data['nome'] ?? 'Sem nome';
-                      final descricao = data['descricao'] ?? '';
+                      //final descricao = data['descricao'] ?? '';
                       final imagem = data['foto'] ?? '';
                       final modalidade = data['modalidade'] ?? 'Modalidade';
                       final quantidade = data['qtdQuadras']?.toString() ?? '?';

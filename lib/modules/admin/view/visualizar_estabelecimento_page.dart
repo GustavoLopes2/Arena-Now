@@ -1,3 +1,4 @@
+import 'package:arenanow/modules/admin/view/visualizar_quadra_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:arenanow/modules/admin/register/register_quadra_page.dart';
@@ -97,6 +98,17 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
                       style: const TextStyle(color: Colors.white70),
                     ),
                     isThreeLine: true,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => VisualizarQuadraPage(
+                            quadraId: docs[index].id,
+                            nomeQuadra: nome,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 );
               },
