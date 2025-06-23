@@ -1,3 +1,4 @@
+import 'package:arenanow/modules/user/register/register_reserva_quadra_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
@@ -82,7 +83,15 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
                     style: const TextStyle(color: Colors.white70),
                   ),
                   onTap: () {
-                    // Aqui você pode abrir os detalhes da quadra ou agendar
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ReservarQuadraPage(
+                          quadraId: quadras[index].id,
+                          quadraNome: nome,
+                        ),
+                      ),
+                    );
                   },
                 ),
               );

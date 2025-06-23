@@ -1,5 +1,10 @@
+import 'package:arenanow/modules/admin/view/visualizar_bloqueio_page.dart';
+import 'package:arenanow/modules/admin/view/visualizar_reservas_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+import 'package:arenanow/modules/admin/register/register_agenda_semanal_page.dart';
+import 'package:arenanow/modules/admin/register/register_bloqueio_page.dart';
 
 class VisualizarQuadraPage extends StatelessWidget {
   final String quadraId;
@@ -171,6 +176,65 @@ class VisualizarQuadraPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+      floatingActionButton: SpeedDial(
+        icon: Icons.add,
+        activeIcon: Icons.close,
+        backgroundColor: const Color(0xFFF2598C),
+        children: [
+          SpeedDialChild(
+            child: const Icon(Icons.access_time),
+            label: 'Adicionar Horário',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      CadastrarAgendaSemanalPage(quadraId: quadraId),
+                ),
+              );
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.block),
+            label: 'Adicionar Bloqueio',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RegisterBloqueioPage(quadraId: quadraId),
+                ),
+              );
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.list),
+            label: 'Ver Bloqueios',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ListarBloqueiosPage(quadraId: quadraId),
+                ),
+              );
+            },
+          ),
+          SpeedDialChild(
+            child: const Icon(Icons.event_note),
+            label: 'Ver Reservas',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => VisualizarReservasPage(
+                    quadraId: quadraId,
+                    quadraNome: nomeQuadra,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
