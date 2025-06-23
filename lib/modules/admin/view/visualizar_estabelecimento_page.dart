@@ -2,6 +2,7 @@ import 'package:arenanow/modules/admin/view/visualizar_quadra_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:arenanow/modules/admin/register/register_quadra_page.dart';
+import 'package:arenanow/modules/admin/view/visualizar_reservas_estabelecimento_page.dart';
 
 class VisualizarEstabelecimentoPage extends StatelessWidget {
   final String estabelecimentoId;
@@ -70,48 +71,79 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
               );
             }
 
-            return ListView.builder(
-              itemCount: docs.length,
-              itemBuilder: (context, index) {
-                final data = docs[index].data() as Map<String, dynamic>;
-                final nome = data['nome'] ?? 'Sem nome';
-                final modalidade = data['modalidade'] ?? '';
-                final descricao = data['descricao'] ?? '';
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF16243D),
-                    borderRadius: BorderRadius.circular(16),
+            return Column(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => VisualizarReservasEstabelecimentoPage(
+                          estabelecimentoId: estabelecimentoId,
+                          nomeEstabelecimento: nomeEstabelecimento,
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF2598C),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(12),
-                    title: Text(
-                      nome,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16),
-                    ),
-                    subtitle: Text(
-                      '$modalidade\n$descricao',
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                    isThreeLine: true,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => VisualizarQuadraPage(
-                            quadraId: docs[index].id,
-                            nomeQuadra: nome,
+                  icon: const Icon(Icons.list),
+                  label: const Text('Ver todas as reservas'),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data() as Map<String, dynamic>;
+                      final nome = data['nome'] ?? 'Sem nome';
+                      final modalidade = data['modalidade'] ?? '';
+                      final descricao = data['descricao'] ?? '';
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF16243D),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.all(12),
+                          title: Text(
+                            nome,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16),
                           ),
+                          subtitle: Text(
+                            '$modalidade\n$descricao',
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                          isThreeLine: true,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => VisualizarQuadraPage(
+                                  quadraId: docs[index].id,
+                                  nomeQuadra: nome,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       );
                     },
                   ),
-                );
-              },
+                ),
+              ],
             );
           },
         ),
