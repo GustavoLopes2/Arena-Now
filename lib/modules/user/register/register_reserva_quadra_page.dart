@@ -140,14 +140,10 @@ class _ReservarQuadraPageState extends State<ReservarQuadraPage> {
       }
     }
 
-    print('Horários reservados: $reservados');
-    print('Horários da agenda: $horarios');
-
     setState(() {
       horariosDisponiveis = horarios
           .where((h) => !bloqueados.contains(h) && !reservados.contains(h))
           .toList();
-      print('Disponíveis: $horariosDisponiveis');
       _carregando = false;
     });
   }
