@@ -3,13 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class BloqueioQuadra {
   final String id;
   final String quadraId;
-  final String tipo; // 'PONTUAL' ou outro tipo recorrente
-  final String? horaInicio; // 'HH:mm' ou null
-  final String? horaFim; // 'HH:mm' ou null
+  final String tipo;
+  final String? horaInicio;
+  final String? horaFim;
   final String motivo;
-  final DateTime? dataInicio; // só se PONTUAL
-  final DateTime? dataFim; // só se PONTUAL
-  final String? diaSemana; // se recorrente
+  final DateTime? dataInicio;
+  final DateTime? dataFim;
+  final String? diaSemana;
   final DateTime criadoEm;
 
   BloqueioQuadra({

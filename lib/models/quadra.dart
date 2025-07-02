@@ -4,7 +4,7 @@ class Quadra {
   final String id;
   final String nome;
   final String descricao;
-  final String modalidade; // ex: 'Beach Tennis', 'Futebol Society'
+  final String modalidade;
   final String estabelecimentoId;
   final DateTime criadoEm;
 

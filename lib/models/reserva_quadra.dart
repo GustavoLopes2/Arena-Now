@@ -3,10 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ReservaQuadra {
   final String id;
   final String quadraId;
-  final DateTime data; // dia da reserva
-  final String horaInicio; // 'HH:mm'
-  final String horaFim; // 'HH:mm'
-  final String status; // 'CONFIRMADA', 'CANCELADA', etc.
+  final DateTime data;
+  final String horaInicio;
+  final String horaFim;
+  final String status;
   final String usuarioId;
   final String usuarioNome;
   final String? usuarioEmail;
@@ -38,7 +38,6 @@ class ReservaQuadra {
     };
   }
 
-  /// [quadraId] vem de fora (id do doc pai em 'quadras/{id}/reservas')
   factory ReservaQuadra.fromDocument(
     DocumentSnapshot doc, {
     required String quadraId,

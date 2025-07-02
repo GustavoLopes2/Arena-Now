@@ -17,7 +17,6 @@ class FotoEstabelecimento {
   }
 
   factory FotoEstabelecimento.fromDocument(dynamic doc) {
-    // aceita DocumentSnapshot ou QueryDocumentSnapshot
     final data = doc.data() as Map<String, dynamic>;
     return FotoEstabelecimento(
       id: doc.id,

@@ -5,7 +5,7 @@ class AppUser {
   final String nome;
   final String email;
   final String? telefone;
-  final String role; // 'admin' ou 'user'
+  final String role;
   final DateTime criadoEm;
 
   AppUser({

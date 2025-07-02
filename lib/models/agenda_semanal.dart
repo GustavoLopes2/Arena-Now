@@ -2,10 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class AgendaSemanal {
   final String id;
-  final String quadraId; // vem do contexto (doc pai de Firestore)
-  final String diaSemana; // 'SEGUNDA', 'TERCA', ...
-  final String horaInicio; // 'HH:mm'
-  final String horaFim; // 'HH:mm'
+  final String quadraId;
+  final String diaSemana;
+  final String horaInicio;
+  final String horaFim;
   final int intervaloMinutos;
   final DateTime criadoEm;
 
@@ -29,7 +29,6 @@ class AgendaSemanal {
     };
   }
 
-  /// [quadraId] vem de fora (id do doc pai na coleção 'quadras')
   factory AgendaSemanal.fromDocument(
     DocumentSnapshot doc, {
     required String quadraId,
