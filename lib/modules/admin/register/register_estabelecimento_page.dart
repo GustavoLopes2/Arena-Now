@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:arenanow/models/estabelecimento.dart';
+import 'package:arenanow/models/foto_estabelecimento.dart';
+import 'package:arenanow/services/estabelecimento_service.dart';
 
 class RegisterEstabelecimentoPage extends StatefulWidget {
   const RegisterEstabelecimentoPage({super.key});
@@ -26,31 +28,38 @@ class _RegisterEstabelecimentoPageState
     setState(() => _isLoading = true);
 
     try {
-      final adminId = FirebaseAuth.instance.currentUser?.uid;
+      final adminId = FirebaseAuth.instance.currentUser!.uid;
 
-      final docRef =
-          await FirebaseFirestore.instance.collection('estabelecimentos').add({
-        'nome': _nomeController.text.trim(),
-        'endereco': _enderecoController.text.trim(),
-        'descricao': _descricaoController.text.trim(),
-        'prazoCancelamentoHoras':
+      final estabelecimento = Estabelecimento(
+        id: "",
+        nome: _nomeController.text.trim(),
+        endereco: _enderecoController.text.trim(),
+        descricao: _descricaoController.text.trim(),
+        prazoCancelamentoHoras:
             int.parse(_prazoCancelamentoController.text.trim()),
-        'adminId': adminId,
-        'criadoEm': Timestamp.now(),
-      });
+        adminId: adminId,
+        criadoEm: DateTime.now(),
+      );
+
+      final service = EstabelecimentoService();
+
+      final id = await service.criarEstabelecimento(estabelecimento);
 
       if (_fotoController.text.trim().isNotEmpty) {
-        await FirebaseFirestore.instance
-            .collection('foto_estabelecimento')
-            .add({
-          'estabelecimentoId': docRef.id,
-          'url': _fotoController.text.trim(),
-        });
+        await service.adicionarFotoEstabelecimento(
+          id,
+          FotoEstabelecimento(
+            id: "",
+            estabelecimentoId: id,
+            url: _fotoController.text.trim(),
+          ),
+        );
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Estabelecimento cadastrado com sucesso!')),
+          content: Text('Estabelecimento cadastrado com sucesso!'),
+        ),
       );
 
       Navigator.pop(context);

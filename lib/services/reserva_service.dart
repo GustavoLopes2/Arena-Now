@@ -8,7 +8,6 @@ class ReservaService {
     final reservas =
         _db.collection('quadras').doc(quadraId).collection('reservas');
 
-    // verifica conflitos
     final conflitos = await reservas
         .where('data', isEqualTo: Timestamp.fromDate(r.data))
         .get();
@@ -25,7 +24,6 @@ class ReservaService {
     }
 
     final doc = reservas.doc();
-    // aqui também não precisa de copyWith
     await doc.set(r.toMap());
     return doc.id;
   }

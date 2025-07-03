@@ -11,7 +11,7 @@ class AgendaService {
         .collection('agenda_semanal')
         .doc();
 
-    await doc.set(a.copyWith(id: doc.id).toMap());
+    await doc.set(a.toMap());
     return doc.id;
   }
 

@@ -41,6 +41,5 @@ class AuthService {
     return cred.user;
   }
 
-  /// Logout
   Future<void> logout() => _auth.signOut();
 }

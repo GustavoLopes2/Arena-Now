@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:arenanow/modules/admin/register/register_agenda_semanal_page.dart';
+import 'package:arenanow/models/quadra.dart';
+import 'package:arenanow/models/foto_quadra.dart';
+import 'package:arenanow/services/quadra_service.dart';
 
 class RegisterQuadraPage extends StatefulWidget {
   final String estabelecimentoId;
@@ -26,20 +28,28 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
     setState(() => _isLoading = true);
 
     try {
-      final docRef =
-          await FirebaseFirestore.instance.collection('quadras').add({
-        'nome': _nomeController.text.trim(),
-        'descricao': _descricaoController.text.trim(),
-        'modalidade': _modalidade,
-        'estabelecimentoId': widget.estabelecimentoId,
-        'criadoEm': Timestamp.now(),
-      });
+      final quadra = Quadra(
+        id: "",
+        nome: _nomeController.text.trim(),
+        descricao: _descricaoController.text.trim(),
+        modalidade: _modalidade,
+        estabelecimentoId: widget.estabelecimentoId,
+        criadoEm: DateTime.now(),
+      );
+
+      final service = QuadraService();
+
+      final quadraId = await service.criarQuadra(quadra);
 
       if (_fotoController.text.trim().isNotEmpty) {
-        await FirebaseFirestore.instance.collection('foto_quadra').add({
-          'quadraId': docRef.id,
-          'url': _fotoController.text.trim(),
-        });
+        await service.salvarFotoQuadra(
+          quadraId,
+          FotoQuadra(
+            id: "",
+            quadraId: quadraId,
+            url: _fotoController.text.trim(),
+          ),
+        );
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,12 +59,14 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => CadastrarAgendaSemanalPage(quadraId: docRef.id),
+          builder: (_) => CadastrarAgendaSemanalPage(quadraId: quadraId),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao cadastrar quadra: ${e.toString()}')),
+        SnackBar(
+          content: Text('Erro ao cadastrar quadra: ${e.toString()}'),
+        ),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -105,9 +117,13 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
                 style: const TextStyle(color: Colors.white),
                 items: const [
                   DropdownMenuItem(
-                      value: 'BEACH_TENNIS', child: Text('Beach Tennis')),
+                    value: 'BEACH_TENNIS',
+                    child: Text('Beach Tennis'),
+                  ),
                   DropdownMenuItem(
-                      value: 'FUTEBOL_SOCIETY', child: Text('Futebol Society')),
+                    value: 'FUTEBOL_SOCIETY',
+                    child: Text('Futebol Society'),
+                  ),
                 ],
                 onChanged: (value) => setState(() => _modalidade = value!),
               ),
