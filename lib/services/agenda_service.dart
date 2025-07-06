@@ -15,6 +15,17 @@ class AgendaService {
     return doc.id;
   }
 
+  Future<bool> existeAgenda(String quadraId, String diaSemana) async {
+    final query = await _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('agenda_semanal')
+        .where('diaSemana', isEqualTo: diaSemana)
+        .get();
+
+    return query.docs.isNotEmpty;
+  }
+
   Stream<List<AgendaSemanal>> listarAgenda(String quadraId) {
     return _db
         .collection('quadras')

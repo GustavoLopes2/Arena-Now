@@ -12,14 +12,18 @@ class BloqueioService {
     return doc.id;
   }
 
-  Stream<List<BloqueioQuadra>> listarBloqueios(String quadraId) {
-    return _db
+  Future<bool> existeBloqueioNoDia(String quadraId, DateTime data) async {
+    final inicio = DateTime(data.year, data.month, data.day);
+    final fim = inicio.add(Duration(days: 1));
+
+    final r = await _db
         .collection('quadras')
         .doc(quadraId)
         .collection('bloqueios')
-        .snapshots()
-        .map((qs) => qs.docs
-            .map((doc) => BloqueioQuadra.fromDocument(doc, quadraId: quadraId))
-            .toList());
+        .where('dataInicio', isGreaterThanOrEqualTo: inicio)
+        .where('dataInicio', isLessThan: fim)
+        .get();
+
+    return r.docs.isNotEmpty;
   }
 }

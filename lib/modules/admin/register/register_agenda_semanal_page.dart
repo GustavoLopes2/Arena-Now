@@ -1,5 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:arenanow/models/agenda_semanal.dart';
+import 'package:arenanow/services/agenda_service.dart';
 
 class CadastrarAgendaSemanalPage extends StatefulWidget {
   final String quadraId;
@@ -44,48 +45,49 @@ class _CadastrarAgendaSemanalPageState
   Future<void> _cadastrarAgenda() async {
     if (!_formKey.currentState!.validate() || _diasSelecionados.isEmpty) return;
 
-    setState(() => _isLoading = true);
+    final inicio = _horaInicioController.text.trim();
+    final fim = _horaFimController.text.trim();
 
-    if (!_validarHorario(
-        _horaInicioController.text.trim(), _horaFimController.text.trim())) {
+    if (!_validarHorario(inicio, fim)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Horário final deve ser depois do horário inicial')),
+          content: Text("Horário final deve ser depois do inicial"),
+        ),
       );
       return;
     }
-    try {
-      for (var dia in _diasSelecionados) {
-        final existe = await FirebaseFirestore.instance
-            .collection('quadras')
-            .doc(widget.quadraId)
-            .collection('agenda_semanal')
-            .where('diaSemana', isEqualTo: dia)
-            .get();
 
-        if (existe.docs.isNotEmpty) {
+    setState(() => _isLoading = true);
+
+    try {
+      final service = AgendaService();
+
+      for (var dia in _diasSelecionados) {
+        final existe = await service.existeAgenda(widget.quadraId, dia);
+        if (existe) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text('Já existe um horário cadastrado para $dia')),
+              content: Text("Já existe agenda cadastrada para $dia"),
+            ),
           );
           continue;
         }
 
-        await FirebaseFirestore.instance
-            .collection('quadras')
-            .doc(widget.quadraId)
-            .collection('agenda_semanal')
-            .add({
-          'diaSemana': dia,
-          'horaInicio': _horaInicioController.text.trim(),
-          'horaFim': _horaFimController.text.trim(),
-          'intervaloMinutos': int.parse(_intervaloController.text.trim()),
-          'criadoEm': Timestamp.now(),
-        });
+        final agenda = AgendaSemanal(
+          id: "",
+          quadraId: widget.quadraId,
+          diaSemana: dia,
+          horaInicio: inicio,
+          horaFim: fim,
+          intervaloMinutos: int.parse(_intervaloController.text.trim()),
+          criadoEm: DateTime.now(),
+        );
+
+        await service.criarAgenda(widget.quadraId, agenda);
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Horários cadastrados com sucesso!')),
+        const SnackBar(content: Text("Horários cadastrados com sucesso!")),
       );
 
       _formKey.currentState!.reset();
@@ -95,7 +97,7 @@ class _CadastrarAgendaSemanalPageState
       setState(() => _diasSelecionados.clear());
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: ${e.toString()}')),
+        SnackBar(content: Text("Erro: $e")),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -115,8 +117,7 @@ class _CadastrarAgendaSemanalPageState
   Widget _buildDiaCheckbox(String dia) {
     return CheckboxListTile(
       title: Text(
-        dia[0].toUpperCase() +
-            dia.substring(1).toLowerCase().replaceAll('_', ' '),
+        dia[0] + dia.substring(1).toLowerCase(),
         style: const TextStyle(color: Colors.white),
       ),
       value: _diasSelecionados.contains(dia),
@@ -149,7 +150,7 @@ class _CadastrarAgendaSemanalPageState
           child: ListView(
             children: [
               const Text(
-                'Dias da Semana',
+                "Dias da Semana",
                 style: TextStyle(
                     color: Colors.white70, fontWeight: FontWeight.bold),
               ),
@@ -159,44 +160,41 @@ class _CadastrarAgendaSemanalPageState
               TextFormField(
                 controller: _horaInicioController,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Horário Início (ex: 15:00)'),
+                decoration: _inputDecoration("Horário Início (ex: 15:00)"),
                 validator: (v) =>
-                    v!.isEmpty ? 'Informe o horário de início' : null,
+                    v!.isEmpty ? "Informe o horário de início" : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _horaFimController,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Horário Fim (ex: 22:00)'),
+                decoration: _inputDecoration("Horário Fim (ex: 22:00)"),
                 validator: (v) =>
-                    v!.isEmpty ? 'Informe o horário de fim' : null,
+                    v!.isEmpty ? "Informe o horário de fim" : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _intervaloController,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Intervalo em minutos (ex: 30)'),
+                decoration: _inputDecoration("Intervalo em minutos (ex: 30)"),
                 keyboardType: TextInputType.number,
                 validator: (v) => v!.isEmpty || int.tryParse(v) == null
-                    ? 'Digite um número válido'
+                    ? "Digite um número válido"
                     : null,
               ),
               const SizedBox(height: 20),
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _cadastrarAgenda,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFF2598C),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                        child: const Text('Adicionar Horários'),
+                  : ElevatedButton(
+                      onPressed: _cadastrarAgenda,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF2598C),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
+                      child: const Text("Adicionar Horários"),
                     ),
             ],
           ),
