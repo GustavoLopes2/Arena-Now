@@ -1,8 +1,10 @@
-import 'package:arenanow/modules/admin/view/visualizar_quadra_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:arenanow/modules/admin/view/visualizar_quadra_page.dart';
 import 'package:arenanow/modules/admin/register/register_quadra_page.dart';
 import 'package:arenanow/modules/admin/view/visualizar_reservas_estabelecimento_page.dart';
+
+import 'package:arenanow/models/quadra.dart';
+import 'package:arenanow/services/quadra_service.dart';
 
 class VisualizarEstabelecimentoPage extends StatelessWidget {
   final String estabelecimentoId;
@@ -16,6 +18,8 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final quadraService = QuadraService();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
       appBar: AppBar(
@@ -24,19 +28,17 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
-        child: StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('quadras')
-              .where('estabelecimentoId', isEqualTo: estabelecimentoId)
-              .snapshots(),
+        child: StreamBuilder<List<Quadra>>(
+          stream:
+              quadraService.listarQuadrasPorEstabelecimento(estabelecimentoId),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
+            if (!snapshot.hasData) {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final docs = snapshot.data?.docs ?? [];
+            final quadras = snapshot.data!;
 
-            if (docs.isEmpty) {
+            if (quadras.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -52,7 +54,8 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => RegisterQuadraPage(
-                                estabelecimentoId: estabelecimentoId),
+                              estabelecimentoId: estabelecimentoId,
+                            ),
                           ),
                         );
                       },
@@ -100,12 +103,9 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 Expanded(
                   child: ListView.builder(
-                    itemCount: docs.length,
+                    itemCount: quadras.length,
                     itemBuilder: (context, index) {
-                      final data = docs[index].data() as Map<String, dynamic>;
-                      final nome = data['nome'] ?? 'Sem nome';
-                      final modalidade = data['modalidade'] ?? '';
-                      final descricao = data['descricao'] ?? '';
+                      final q = quadras[index];
 
                       return Container(
                         margin: const EdgeInsets.only(bottom: 16),
@@ -116,14 +116,15 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(12),
                           title: Text(
-                            nome,
+                            q.nome,
                             style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                           subtitle: Text(
-                            '$modalidade\n$descricao',
+                            '${q.modalidade}\n${q.descricao}',
                             style: const TextStyle(color: Colors.white70),
                           ),
                           isThreeLine: true,
@@ -132,8 +133,8 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (_) => VisualizarQuadraPage(
-                                  quadraId: docs[index].id,
-                                  nomeQuadra: nome,
+                                  quadraId: q.id,
+                                  nomeQuadra: q.nome,
                                 ),
                               ),
                             );

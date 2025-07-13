@@ -19,7 +19,8 @@ class QuadraService {
     });
   }
 
-  Stream<List<Quadra>> listarQuadras(String estabelecimentoId) {
+  Stream<List<Quadra>> listarQuadrasPorEstabelecimento(
+      String estabelecimentoId) {
     return _db
         .collection('quadras')
         .where('estabelecimentoId', isEqualTo: estabelecimentoId)
