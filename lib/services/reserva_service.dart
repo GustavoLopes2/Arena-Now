@@ -10,4 +10,26 @@ class ReservaService {
 
     await doc.set(r.toMap());
   }
+
+  Stream<List<ReservaQuadra>> listarReservasFuturas(String quadraId) {
+    final hoje = DateTime.now();
+
+    return _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('reservas')
+        .where(
+          'data',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(
+            DateTime(hoje.year, hoje.month, hoje.day),
+          ),
+        )
+        .orderBy('data')
+        .snapshots()
+        .map(
+          (qs) => qs.docs
+              .map((doc) => ReservaQuadra.fromDocument(doc, quadraId: quadraId))
+              .toList(),
+        );
+  }
 }

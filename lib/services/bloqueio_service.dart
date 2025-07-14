@@ -26,4 +26,37 @@ class BloqueioService {
 
     return r.docs.isNotEmpty;
   }
+
+  Stream<List<BloqueioQuadra>> listarBloqueios(String quadraId) {
+    return _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('bloqueios')
+        .snapshots()
+        .map((qs) => qs.docs
+            .map((doc) => BloqueioQuadra.fromDocument(doc, quadraId: quadraId))
+            .toList());
+  }
+
+  Future<void> deletarBloqueio(String quadraId, String bloqueioId) async {
+    await _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('bloqueios')
+        .doc(bloqueioId)
+        .delete();
+  }
+
+  Future<void> atualizarBloqueio(
+    String quadraId,
+    String bloqueioId,
+    BloqueioQuadra b,
+  ) async {
+    await _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('bloqueios')
+        .doc(bloqueioId)
+        .update(b.toMap());
+  }
 }

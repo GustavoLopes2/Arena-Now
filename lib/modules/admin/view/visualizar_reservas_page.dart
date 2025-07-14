@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import 'package:arenanow/models/reserva_quadra.dart';
+import 'package:arenanow/services/reserva_service.dart';
 
 class VisualizarReservasPage extends StatelessWidget {
   final String quadraId;
@@ -14,27 +16,23 @@ class VisualizarReservasPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final reservaService = ReservaService();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E1A2F),
-        title: Text('Reservas - $quadraNome'),
+        title: Text("Reservas - $quadraNome"),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('quadras')
-            .doc(quadraId)
-            .collection('reservas')
-            .where('data', isGreaterThanOrEqualTo: Timestamp.now())
-            .orderBy('data')
-            .snapshots(),
+      body: StreamBuilder<List<ReservaQuadra>>(
+        stream: reservaService.listarReservasFuturas(quadraId),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final docs = snapshot.data!.docs;
-          if (docs.isEmpty) {
+          final reservas = snapshot.data!;
+          if (reservas.isEmpty) {
             return const Center(
               child: Text(
                 'Nenhuma reserva futura encontrada.',
@@ -43,21 +41,17 @@ class VisualizarReservasPage extends StatelessWidget {
             );
           }
 
-          final Map<String, List<Map<String, dynamic>>> reservasPorData = {};
-          for (var doc in docs) {
-            final data = doc.data() as Map<String, dynamic>;
-            final timestamp = data['data'] as Timestamp?;
-            if (timestamp == null) continue;
+          final Map<String, List<ReservaQuadra>> reservasPorData = {};
 
-            final dataFormatada =
-                DateFormat('dd/MM/yyyy').format(timestamp.toDate());
-            reservasPorData.putIfAbsent(dataFormatada, () => []).add(data);
+          for (var r in reservas) {
+            final dataStr = DateFormat('dd/MM/yyyy').format(r.data);
+            reservasPorData.putIfAbsent(dataStr, () => []).add(r);
           }
 
           return ListView(
             children: reservasPorData.entries.map((entry) {
               final dataStr = entry.key;
-              final reservas = entry.value;
+              final lista = entry.value;
 
               return Padding(
                 padding:
@@ -74,21 +68,16 @@ class VisualizarReservasPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    ...reservas.map((reserva) {
-                      final nome = reserva['usuarioNome'] ?? 'Usuário';
-                      final horaInicio = reserva['horaInicio'] ?? '--:--';
-                      final horaFim = reserva['horaFim'] ?? '--:--';
-                      final status = reserva['status'] ?? 'confirmada';
-
+                    ...lista.map((reserva) {
                       return Card(
                         color: const Color(0xFF1E2D45),
                         child: ListTile(
                           title: Text(
-                            nome,
+                            reserva.usuarioNome,
                             style: const TextStyle(color: Colors.white),
                           ),
                           subtitle: Text(
-                            '$horaInicio - $horaFim\nStatus: $status',
+                            '${reserva.horaInicio} - ${reserva.horaFim}\nStatus: ${reserva.status}',
                             style: const TextStyle(color: Colors.white70),
                           ),
                           isThreeLine: true,
