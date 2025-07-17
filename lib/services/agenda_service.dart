@@ -36,4 +36,35 @@ class AgendaService {
             .map((doc) => AgendaSemanal.fromDocument(doc, quadraId: quadraId))
             .toList());
   }
+
+  Stream<List<AgendaSemanal>> listarAgendaPorQuadra(String quadraId) {
+    return _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('agenda_semanal')
+        .orderBy('diaSemana')
+        .snapshots()
+        .map((qs) => qs.docs
+            .map((doc) => AgendaSemanal.fromDocument(doc, quadraId: quadraId))
+            .toList());
+  }
+
+  Future<void> atualizarAgenda(
+    String quadraId,
+    String agendaId, {
+    required String horaInicio,
+    required String horaFim,
+    required int intervaloMinutos,
+  }) async {
+    await _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('agenda_semanal')
+        .doc(agendaId)
+        .update({
+      'horaInicio': horaInicio,
+      'horaFim': horaFim,
+      'intervaloMinutos': intervaloMinutos,
+    });
+  }
 }

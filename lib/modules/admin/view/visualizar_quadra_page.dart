@@ -1,10 +1,13 @@
-import 'package:arenanow/modules/admin/view/visualizar_bloqueio_page.dart';
-import 'package:arenanow/modules/admin/view/visualizar_reservas_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
+
 import 'package:arenanow/modules/admin/register/register_agenda_semanal_page.dart';
 import 'package:arenanow/modules/admin/register/register_bloqueio_page.dart';
+import 'package:arenanow/modules/admin/view/visualizar_bloqueio_page.dart';
+import 'package:arenanow/modules/admin/view/visualizar_reservas_page.dart';
+
+import 'package:arenanow/models/agenda_semanal.dart';
+import 'package:arenanow/services/agenda_service.dart';
 
 class VisualizarQuadraPage extends StatelessWidget {
   final String quadraId;
@@ -16,26 +19,31 @@ class VisualizarQuadraPage extends StatelessWidget {
     required this.nomeQuadra,
   });
 
-  void _abrirDialogEdicao(BuildContext context, String agendaId, String dia,
-      String inicio, String fim, int intervalo) {
-    final inicioController = TextEditingController(text: inicio);
-    final fimController = TextEditingController(text: fim);
+  void _abrirDialogEdicao(
+    BuildContext context,
+    AgendaSemanal agenda,
+  ) {
+    final inicioController = TextEditingController(text: agenda.horaInicio);
+    final fimController = TextEditingController(text: agenda.horaFim);
     final intervaloController =
-        TextEditingController(text: intervalo.toString());
+        TextEditingController(text: agenda.intervaloMinutos.toString());
 
     bool validarHorario(String inicio, String fim) {
-      final inicioParts = inicio.split(':').map(int.parse).toList();
-      final fimParts = fim.split(':').map(int.parse).toList();
-      final inicioMin = inicioParts[0] * 60 + inicioParts[1];
-      final fimMin = fimParts[0] * 60 + fimParts[1];
-      return fimMin > inicioMin;
+      final i = _toMinutes(inicio);
+      final f = _toMinutes(fim);
+      return f > i;
     }
+
+    final service = AgendaService();
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1E2D45),
-        title: Text('Editar $dia', style: const TextStyle(color: Colors.white)),
+        title: Text(
+          'Editar ${agenda.diaSemana}',
+          style: const TextStyle(color: Colors.white),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -49,8 +57,8 @@ class VisualizarQuadraPage extends StatelessWidget {
             ),
             TextField(
               controller: intervaloController,
-              decoration: const InputDecoration(labelText: 'Intervalo'),
               keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Intervalo (min)'),
             ),
           ],
         ),
@@ -61,46 +69,51 @@ class VisualizarQuadraPage extends StatelessWidget {
                 const Text('Cancelar', style: TextStyle(color: Colors.white)),
           ),
           ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF2598C),
+            ),
             onPressed: () async {
-              final horaInicio = inicioController.text.trim();
-              final horaFim = fimController.text.trim();
-              final intervaloTexto = intervaloController.text.trim();
+              final inicio = inicioController.text.trim();
+              final fim = fimController.text.trim();
+              final intervalo = int.parse(intervaloController.text.trim());
 
-              if (!validarHorario(horaInicio, horaFim)) {
+              if (!validarHorario(inicio, fim)) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
                     content: Text(
-                        'Horário final deve ser maior que o horário inicial'),
+                      'Horário final deve ser maior que o inicial',
+                    ),
                   ),
                 );
                 return;
               }
 
-              await FirebaseFirestore.instance
-                  .collection('quadras')
-                  .doc(quadraId)
-                  .collection('agenda_semanal')
-                  .doc(agendaId)
-                  .update({
-                'horaInicio': horaInicio,
-                'horaFim': horaFim,
-                'intervaloMinutos': int.parse(intervaloTexto),
-              });
+              await service.atualizarAgenda(
+                quadraId,
+                agenda.id,
+                horaInicio: inicio,
+                horaFim: fim,
+                intervaloMinutos: intervalo,
+              );
 
               Navigator.pop(context);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF2598C),
-            ),
-            child: const Text('Salvar'),
+            child: const Text("Salvar"),
           ),
         ],
       ),
     );
   }
 
+  int _toMinutes(String hhmm) {
+    final p = hhmm.split(':');
+    return int.parse(p[0]) * 60 + int.parse(p[1]);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final agendaService = AgendaService();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
       appBar: AppBar(
@@ -112,60 +125,48 @@ class VisualizarQuadraPage extends StatelessWidget {
         child: Column(
           children: [
             const Text(
-              'Horários Cadastrados',
+              "Horários Cadastrados",
               style: TextStyle(color: Colors.white70, fontSize: 18),
             ),
             const SizedBox(height: 12),
             Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('quadras')
-                    .doc(quadraId)
-                    .collection('agenda_semanal')
-                    .orderBy('diaSemana')
-                    .snapshots(),
+              child: StreamBuilder<List<AgendaSemanal>>(
+                stream: agendaService.listarAgendaPorQuadra(quadraId),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final docs = snapshot.data!.docs;
+                  final agendas = snapshot.data!;
 
-                  if (docs.isEmpty) {
+                  if (agendas.isEmpty) {
                     return const Center(
                       child: Text(
-                        'Nenhum horário cadastrado.',
+                        "Nenhum horário cadastrado.",
                         style: TextStyle(color: Colors.white54),
                       ),
                     );
                   }
 
                   return ListView.builder(
-                    itemCount: docs.length,
+                    itemCount: agendas.length,
                     itemBuilder: (context, index) {
-                      final data = docs[index].data() as Map<String, dynamic>;
-                      final dia = data['diaSemana'];
-                      final inicio = data['horaInicio'];
-                      final fim = data['horaFim'];
-                      final intervalo = data['intervaloMinutos'];
+                      final a = agendas[index];
 
                       return Card(
                         color: const Color(0xFF1E2D45),
                         child: ListTile(
                           title: Text(
-                            dia,
+                            a.diaSemana,
                             style: const TextStyle(color: Colors.white),
                           ),
                           subtitle: Text(
-                            'Das $inicio às $fim • $intervalo min',
+                            "Das ${a.horaInicio} às ${a.horaFim} • ${a.intervaloMinutos} min",
                             style: const TextStyle(color: Colors.white70),
                           ),
                           trailing: IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.white),
-                            onPressed: () {
-                              _abrirDialogEdicao(context, docs[index].id, dia,
-                                  inicio, fim, intervalo);
-                            },
+                            icon: const Icon(Icons.edit, color: Colors.white70),
+                            onPressed: () => _abrirDialogEdicao(context, a),
                           ),
                         ),
                       );

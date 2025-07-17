@@ -1,6 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import 'package:arenanow/models/bloqueio_quadra.dart';
+import 'package:arenanow/services/bloqueio_service.dart';
+
 import 'editar_bloqueio_page.dart';
 
 class ListarBloqueiosPage extends StatelessWidget {
@@ -8,33 +11,30 @@ class ListarBloqueiosPage extends StatelessWidget {
 
   const ListarBloqueiosPage({super.key, required this.quadraId});
 
-  String formatDate(Timestamp? timestamp) {
-    if (timestamp == null) return '---';
-    return DateFormat('dd/MM/yyyy').format(timestamp.toDate());
+  String formatDate(DateTime? date) {
+    if (date == null) return '---';
+    return DateFormat('dd/MM/yyyy').format(date);
   }
 
   @override
   Widget build(BuildContext context) {
+    final service = BloqueioService();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E1A2F),
         title: const Text('Bloqueios da Quadra'),
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('quadras')
-            .doc(quadraId)
-            .collection('bloqueios')
-            .snapshots(),
+      body: StreamBuilder<List<BloqueioQuadra>>(
+        stream: service.listarBloqueios(quadraId),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final docs = snapshot.data!.docs;
-
-          if (docs.isEmpty) {
+          final bloqueios = snapshot.data!;
+          if (bloqueios.isEmpty) {
             return const Center(
               child: Text(
                 'Nenhum bloqueio cadastrado.',
@@ -44,30 +44,27 @@ class ListarBloqueiosPage extends StatelessWidget {
           }
 
           return ListView.builder(
-            itemCount: docs.length,
+            itemCount: bloqueios.length,
             itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-              final tipo = data['tipo'] ?? 'N/A';
-              final motivo = data['motivo'] ?? 'Sem motivo';
-              final horaInicio = data['horaInicio'] ?? '00:00';
-              final horaFim = data['horaFim'] ?? '00:00';
-              final diaSemana = data['diaSemana'];
-              final dataInicio = data['dataInicio'] as Timestamp?;
-              final dataFim = data['dataFim'] as Timestamp?;
+              final b = bloqueios[index];
 
-              final isRecorrente = tipo == 'RECORRENTE';
+              final bool recorrente = b.tipo == "RECORRENTE";
+
+              final titulo = recorrente
+                  ? "Recorrente: ${b.diaSemana}"
+                  : "Pontual: ${formatDate(b.dataInicio)} até ${formatDate(b.dataFim)}";
+
+              final horario = "${b.horaInicio} - ${b.horaFim}";
 
               return Card(
                 color: const Color(0xFF1E2D45),
                 child: ListTile(
                   title: Text(
-                    isRecorrente
-                        ? 'Recorrente: $diaSemana'
-                        : 'Pontual: ${formatDate(dataInicio)} até ${formatDate(dataFim)}',
+                    titulo,
                     style: const TextStyle(color: Colors.white),
                   ),
                   subtitle: Text(
-                    '$motivo\n$horaInicio - $horaFim',
+                    "${b.motivo}\n$horario",
                     style: const TextStyle(color: Colors.white70),
                   ),
                   isThreeLine: true,
@@ -82,8 +79,8 @@ class ListarBloqueiosPage extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (_) => EditarBloqueioPage(
                                 quadraId: quadraId,
-                                bloqueioId: docs[index].id,
-                                dadosBloqueio: data,
+                                bloqueioId: b.id,
+                                dadosBloqueio: b,
                               ),
                             ),
                           );
@@ -94,31 +91,27 @@ class ListarBloqueiosPage extends StatelessWidget {
                         onPressed: () async {
                           final confirm = await showDialog<bool>(
                             context: context,
-                            builder: (context) => AlertDialog(
+                            builder: (_) => AlertDialog(
                               title: const Text('Confirmar exclusão'),
                               content: const Text(
-                                  'Deseja realmente excluir este bloqueio?'),
+                                'Deseja realmente excluir este bloqueio?',
+                              ),
                               actions: [
                                 TextButton(
-                                  child: const Text('Cancelar'),
                                   onPressed: () =>
                                       Navigator.pop(context, false),
+                                  child: const Text('Cancelar'),
                                 ),
                                 ElevatedButton(
-                                  child: const Text('Excluir'),
                                   onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Excluir'),
                                 ),
                               ],
                             ),
                           );
 
                           if (confirm == true) {
-                            await FirebaseFirestore.instance
-                                .collection('quadras')
-                                .doc(quadraId)
-                                .collection('bloqueios')
-                                .doc(docs[index].id)
-                                .delete();
+                            await service.deletarBloqueio(quadraId, b.id);
                           }
                         },
                       ),
