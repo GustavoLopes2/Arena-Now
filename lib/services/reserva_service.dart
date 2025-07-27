@@ -11,6 +11,18 @@ class ReservaService {
     await doc.set(r.toMap());
   }
 
+  Stream<List<ReservaQuadra>> listarReservas(String quadraId) {
+    return _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('reservas')
+        .orderBy('data')
+        .snapshots()
+        .map((qs) => qs.docs
+            .map((doc) => ReservaQuadra.fromDocument(doc, quadraId: quadraId))
+            .toList());
+  }
+
   Stream<List<ReservaQuadra>> listarReservasFuturas(String quadraId) {
     final hoje = DateTime.now();
 
@@ -31,5 +43,51 @@ class ReservaService {
               .map((doc) => ReservaQuadra.fromDocument(doc, quadraId: quadraId))
               .toList(),
         );
+  }
+
+  Stream<List<ReservaQuadra>> listarReservasDeEstabelecimento(
+      String estabelecimentoId) {
+    return _db
+        .collection('quadras')
+        .where('estabelecimentoId', isEqualTo: estabelecimentoId)
+        .snapshots()
+        .asyncMap((qsQuadras) async {
+      List<ReservaQuadra> todas = [];
+
+      for (var quadraDoc in qsQuadras.docs) {
+        final quadraId = quadraDoc.id;
+        final nomeQuadra = quadraDoc['nome'] ?? 'Quadra';
+
+        final reservasSnap = await _db
+            .collection('quadras')
+            .doc(quadraId)
+            .collection('reservas')
+            .get();
+
+        for (var r in reservasSnap.docs) {
+          final reserva = ReservaQuadra.fromDocument(
+            r,
+            quadraId: quadraId,
+            nomeQuadra: nomeQuadra,
+          );
+          todas.add(reserva);
+        }
+      }
+
+      return todas;
+    });
+  }
+
+  Future<void> cancelarReservaAdmin(String quadraId, String reservaId) async {
+    await _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('reservas')
+        .doc(reservaId)
+        .update({
+      'status': 'CANCELADA_ADMIN',
+      'canceladoPor': 'ADMIN',
+      'dataCancelamento': Timestamp.now(),
+    });
   }
 }

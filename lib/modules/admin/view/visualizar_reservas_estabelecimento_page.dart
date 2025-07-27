@@ -1,6 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+
+import 'package:arenanow/models/reserva_quadra.dart';
+import 'package:arenanow/services/reserva_service.dart';
 
 class VisualizarReservasEstabelecimentoPage extends StatefulWidget {
   final String estabelecimentoId;
@@ -21,12 +23,10 @@ class _VisualizarReservasEstabelecimentoPageState
     extends State<VisualizarReservasEstabelecimentoPage> {
   String filtroStatus = 'TODOS';
 
-  String formatDate(Timestamp timestamp) {
-    return DateFormat('dd/MM/yyyy').format(timestamp.toDate());
-  }
-
   @override
   Widget build(BuildContext context) {
+    final reservaService = ReservaService();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
       appBar: AppBar(
@@ -37,8 +37,8 @@ class _VisualizarReservasEstabelecimentoPageState
             value: filtroStatus,
             dropdownColor: const Color(0xFF1E2D45),
             underline: Container(),
-            iconEnabledColor: Colors.white,
             style: const TextStyle(color: Colors.white),
+            iconEnabledColor: Colors.white,
             items: const [
               DropdownMenuItem(value: 'TODOS', child: Text('Todos')),
               DropdownMenuItem(value: 'CONFIRMADA', child: Text('Confirmadas')),
@@ -49,193 +49,131 @@ class _VisualizarReservasEstabelecimentoPageState
                   value: 'CANCELADA_ADMIN',
                   child: Text('Canceladas pelo admin')),
             ],
-            onChanged: (value) {
-              setState(() => filtroStatus = value!);
-            },
+            onChanged: (val) => setState(() => filtroStatus = val!),
           ),
         ],
       ),
-      body: FutureBuilder<QuerySnapshot>(
-        future: FirebaseFirestore.instance
-            .collection('quadras')
-            .where('estabelecimentoId', isEqualTo: widget.estabelecimentoId)
-            .get(),
-        builder: (context, snapshotQuadras) {
-          if (!snapshotQuadras.hasData) {
+      body: StreamBuilder<List<ReservaQuadra>>(
+        stream: reservaService
+            .listarReservasDeEstabelecimento(widget.estabelecimentoId),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          final quadras = snapshotQuadras.data!.docs;
+          final reservas = snapshot.data!;
+          final hoje = DateTime.now();
 
-          return FutureBuilder<List<Map<String, dynamic>>>(
-            future: _carregarReservasDeTodasAsQuadras(quadras),
-            builder: (context, snapshotReservas) {
-              if (!snapshotReservas.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          List<ReservaQuadra> futuras = [];
+          List<ReservaQuadra> passadas = [];
 
-              final todasReservas = snapshotReservas.data!;
-              final hoje = DateTime.now();
-              final futuras = <Map<String, dynamic>>[];
-              final passadas = <Map<String, dynamic>>[];
+          for (var r in reservas) {
+            if (filtroStatus != 'TODOS' && r.status != filtroStatus) continue;
 
-              for (var reserva in todasReservas) {
-                final data = (reserva['data'] as Timestamp?)?.toDate();
-                final status = reserva['status'] ?? 'CONFIRMADA';
+            if (r.data.isBefore(hoje)) {
+              passadas.add(r);
+            } else {
+              futuras.add(r);
+            }
+          }
 
-                if (filtroStatus != 'TODOS' && status != filtroStatus) continue;
-
-                if (data != null) {
-                  if (data.isBefore(hoje)) {
-                    passadas.add(reserva);
-                  } else {
-                    futuras.add(reserva);
-                  }
-                }
-              }
-
-              return ListView(
-                children: [
-                  if (futuras.isNotEmpty)
-                    _buildSection('Próximas Reservas', futuras),
-                  if (passadas.isNotEmpty)
-                    _buildSection('Reservas Anteriores', passadas),
-                  if (futuras.isEmpty && passadas.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Center(
-                        child: Text(
-                          'Nenhuma reserva encontrada.',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      ),
+          return ListView(
+            children: [
+              if (futuras.isNotEmpty)
+                _buildSection("Próximas Reservas", futuras),
+              if (passadas.isNotEmpty)
+                _buildSection("Reservas Anteriores", passadas),
+              if (futuras.isEmpty && passadas.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                    child: Text(
+                      "Nenhuma reserva encontrada.",
+                      style: TextStyle(color: Colors.white70),
                     ),
-                ],
-              );
-            },
+                  ),
+                ),
+            ],
           );
         },
       ),
     );
   }
 
-  Future<List<Map<String, dynamic>>> _carregarReservasDeTodasAsQuadras(
-      List<QueryDocumentSnapshot> quadras) async {
-    List<Map<String, dynamic>> todas = [];
-
-    for (var quadra in quadras) {
-      final quadraId = quadra.id;
-      final nomeQuadra = quadra['nome'] ?? 'Quadra';
-
-      final reservasSnap = await FirebaseFirestore.instance
-          .collection('quadras')
-          .doc(quadraId)
-          .collection('reservas')
-          .get();
-
-      for (var r in reservasSnap.docs) {
-        final dados = r.data();
-        dados['id'] = r.id;
-        dados['quadraId'] = quadraId;
-        dados['nomeQuadra'] = nomeQuadra;
-        todas.add(dados);
-      }
-    }
-
-    return todas;
-  }
-
-  Widget _buildSection(String title, List<Map<String, dynamic>> reservas) {
-    reservas.sort((a, b) {
-      final dataA = (a['data'] as Timestamp?)?.toDate() ?? DateTime(2100);
-      final dataB = (b['data'] as Timestamp?)?.toDate() ?? DateTime(2100);
-      return dataA.compareTo(dataB);
-    });
+  Widget _buildSection(String title, List<ReservaQuadra> reservas) {
+    reservas.sort((a, b) => a.data.compareTo(b.data));
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 6),
-          ...reservas.map((reserva) {
-            final nome = reserva['usuarioNome'] ?? 'Usuário';
-            final data = reserva['data'] as Timestamp?;
-            final horaInicio = reserva['horaInicio'] ?? '--:--';
-            final horaFim = reserva['horaFim'] ?? '--:--';
-            final status = reserva['status'] ?? 'CONFIRMADA';
-            final nomeQuadra = reserva['nomeQuadra'] ?? 'Quadra';
-
+          ...reservas.map((r) {
             return Card(
               color: const Color(0xFF1E2D45),
               child: ListTile(
                 title: Text(
-                  nome,
+                  r.usuarioNome,
                   style: const TextStyle(color: Colors.white),
                 ),
                 subtitle: Text(
-                  '${data != null ? formatDate(data) : '--'} | $horaInicio - $horaFim\nStatus: $status\nQuadra: $nomeQuadra',
+                  "${DateFormat('dd/MM/yyyy').format(r.data)} | "
+                  "${r.horaInicio} - ${r.horaFim}\n"
+                  "Status: ${r.status}\n"
+                  "Quadra: ${r.nomeQuadra ?? '---'}",
                   style: const TextStyle(color: Colors.white70),
                 ),
                 isThreeLine: true,
-                trailing: status == 'CONFIRMADA'
+                trailing: r.status == "CONFIRMADA"
                     ? IconButton(
                         icon: const Icon(Icons.cancel, color: Colors.redAccent),
-                        onPressed: () => _confirmarCancelamento(
-                            reserva['quadraId'], reserva['id']),
+                        onPressed: () =>
+                            _confirmarCancelamento(r.quadraId, r.id),
                       )
                     : null,
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
   }
 
-  void _confirmarCancelamento(String quadraId, String reservaId) async {
+  Future<void> _confirmarCancelamento(String quadraId, String reservaId) async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1E2D45),
-        title: const Text('Cancelar Reserva',
+        title: const Text("Cancelar Reserva",
             style: TextStyle(color: Colors.white)),
         content: const Text(
-          'Deseja realmente cancelar esta reserva?',
+          "Deseja realmente cancelar esta reserva?",
           style: TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
+            child: const Text("Não"),
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Não'),
           ),
           ElevatedButton(
+            child: const Text("Sim, cancelar"),
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF2598C),
-            ),
-            child: const Text('Sim, cancelar'),
           ),
         ],
       ),
     );
 
     if (confirmar == true) {
-      await FirebaseFirestore.instance
-          .collection('quadras')
-          .doc(quadraId)
-          .collection('reservas')
-          .doc(reservaId)
-          .update({
-        'status': 'CANCELADA_ADMIN',
-        'canceladoPor': 'ADMIN',
-        'dataCancelamento': Timestamp.now(),
-      });
+      await ReservaService().cancelarReservaAdmin(quadraId, reservaId);
     }
   }
 }

@@ -11,6 +11,7 @@ class ReservaQuadra {
   final String usuarioNome;
   final String? usuarioEmail;
   final DateTime criadoEm;
+  final String? nomeQuadra;
 
   ReservaQuadra({
     required this.id,
@@ -23,6 +24,7 @@ class ReservaQuadra {
     required this.usuarioNome,
     required this.usuarioEmail,
     required this.criadoEm,
+    this.nomeQuadra,
   });
 
   Map<String, dynamic> toMap() {
@@ -41,6 +43,7 @@ class ReservaQuadra {
   factory ReservaQuadra.fromDocument(
     DocumentSnapshot doc, {
     required String quadraId,
+    String? nomeQuadra,
   }) {
     final dataMap = doc.data() as Map<String, dynamic>;
     return ReservaQuadra(
@@ -54,6 +57,7 @@ class ReservaQuadra {
       usuarioNome: dataMap['usuarioNome'] ?? '',
       usuarioEmail: dataMap['usuarioEmail'],
       criadoEm: (dataMap['criadoEm'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      nomeQuadra: nomeQuadra,
     );
   }
 
@@ -68,6 +72,7 @@ class ReservaQuadra {
     String? usuarioNome,
     String? usuarioEmail,
     DateTime? criadoEm,
+    String? nomeQuadra,
   }) {
     return ReservaQuadra(
       id: id ?? this.id,
@@ -80,6 +85,7 @@ class ReservaQuadra {
       usuarioNome: usuarioNome ?? this.usuarioNome,
       usuarioEmail: usuarioEmail ?? this.usuarioEmail,
       criadoEm: criadoEm ?? this.criadoEm,
+      nomeQuadra: nomeQuadra ?? this.nomeQuadra,
     );
   }
 }
