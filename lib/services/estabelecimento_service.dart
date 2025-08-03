@@ -34,4 +34,25 @@ class EstabelecimentoService {
     if (!doc.exists) return null;
     return Estabelecimento.fromDocument(doc);
   }
+
+  Future<String?> buscarFoto(String estabelecimentoId) async {
+    final snap = await _db
+        .collection('foto_estabelecimento')
+        .where('estabelecimentoId', isEqualTo: estabelecimentoId)
+        .limit(1)
+        .get();
+
+    if (snap.docs.isEmpty) return null;
+
+    return snap.docs.first.data()['url'] as String?;
+  }
+
+  Future<int> contarQuadras(String estabelecimentoId) async {
+    final snap = await _db
+        .collection('quadras')
+        .where('estabelecimentoId', isEqualTo: estabelecimentoId)
+        .get();
+
+    return snap.docs.length;
+  }
 }

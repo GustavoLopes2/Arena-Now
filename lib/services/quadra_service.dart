@@ -33,4 +33,15 @@ class QuadraService {
     if (!doc.exists) return null;
     return Quadra.fromDocument(doc);
   }
+
+  Future<String?> buscarFotoQuadra(String quadraId) async {
+    final snap = await _db
+        .collection('foto_quadra')
+        .where('quadraId', isEqualTo: quadraId)
+        .limit(1)
+        .get();
+
+    if (snap.docs.isEmpty) return null;
+    return snap.docs.first.data()['url'];
+  }
 }

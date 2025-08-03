@@ -90,4 +90,43 @@ class ReservaService {
       'dataCancelamento': Timestamp.now(),
     });
   }
+
+  Stream<List<ReservaQuadra>> listarReservasDoUsuario(String usuarioId) {
+    return _db.collection('quadras').snapshots().asyncMap((quadrasSnap) async {
+      List<ReservaQuadra> todas = [];
+
+      for (var quadraDoc in quadrasSnap.docs) {
+        final quadraId = quadraDoc.id;
+        final quadraNome = quadraDoc['nome'] ?? 'Quadra';
+
+        final reservasSnap = await quadraDoc.reference
+            .collection('reservas')
+            .where('usuarioId', isEqualTo: usuarioId)
+            .get();
+
+        for (var r in reservasSnap.docs) {
+          final reserva = ReservaQuadra.fromDocument(
+            r,
+            quadraId: quadraId,
+            nomeQuadra: quadraNome,
+          );
+          todas.add(reserva);
+        }
+      }
+
+      return todas;
+    });
+  }
+
+  Future<void> cancelarReservaUsuario(String quadraId, String reservaId) async {
+    await _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('reservas')
+        .doc(reservaId)
+        .update({
+      'status': 'CANCELADA_USUARIO',
+      'dataCancelamento': Timestamp.now(),
+    });
+  }
 }
