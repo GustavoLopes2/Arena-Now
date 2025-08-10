@@ -59,4 +59,58 @@ class BloqueioService {
         .doc(bloqueioId)
         .update(b.toMap());
   }
+
+  Future<List<Map<String, dynamic>>> buscarBloqueios(String quadraId) async {
+    final snap = await _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('bloqueios')
+        .get();
+
+    return snap.docs.map((d) => d.data()).toList();
+  }
+
+  Set<String> gerarBloqueios(
+    List<Map<String, dynamic>> bloqueios,
+    String diaSemana,
+    DateTime diaSelecionado,
+    int intervalo,
+    DateTime Function(String) toTime,
+    String Function(DateTime) formatTime,
+  ) {
+    final result = <String>{};
+
+    for (var b in bloqueios) {
+      final tipo = b['tipo'];
+      final horaInicio = b['horaInicio'];
+      final horaFim = b['horaFim'];
+
+      final dataInicio = (b['dataInicio'] as Timestamp?)?.toDate();
+      final dataFim = (b['dataFim'] as Timestamp?)?.toDate();
+
+      bool bloqueia = false;
+
+      if (tipo == 'RECORRENTE' && b['diaSemana'] == diaSemana) {
+        bloqueia = true;
+      } else if (tipo == 'PONTUAL' &&
+          dataInicio != null &&
+          dataFim != null &&
+          !diaSelecionado.isBefore(dataInicio) &&
+          !diaSelecionado.isAfter(dataFim)) {
+        bloqueia = true;
+      }
+
+      if (bloqueia) {
+        var atual = toTime(horaInicio);
+        final fim = toTime(horaFim);
+
+        while (atual.isBefore(fim)) {
+          result.add(formatTime(atual));
+          atual = atual.add(Duration(minutes: intervalo));
+        }
+      }
+    }
+
+    return result;
+  }
 }

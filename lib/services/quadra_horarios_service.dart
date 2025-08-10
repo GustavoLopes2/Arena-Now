@@ -63,8 +63,8 @@ class QuadraHorariosService {
       }
 
       if (ativo) {
-        DateTime atual = _toTime(b.horaInicio!);
-        final fim = _toTime(b.horaFim!);
+        DateTime atual = _toTime(b.horaInicio);
+        final fim = _toTime(b.horaFim);
         while (atual.isBefore(fim)) {
           bloqueados.add(_formatTime(atual));
           atual = atual.add(Duration(minutes: a.intervaloMinutos));

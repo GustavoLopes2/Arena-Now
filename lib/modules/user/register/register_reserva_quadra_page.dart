@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'package:arenanow/services/quadra_horarios_service.dart';
+import 'package:arenanow/services/agenda_semanal_service.dart';
+import 'package:arenanow/services/bloqueio_service.dart';
 import 'package:arenanow/services/reserva_service.dart';
-
-import 'package:arenanow/models/reserva_quadra.dart';
 
 class ReservarQuadraPage extends StatefulWidget {
   final String quadraId;
@@ -22,101 +21,132 @@ class ReservarQuadraPage extends StatefulWidget {
 }
 
 class _ReservarQuadraPageState extends State<ReservarQuadraPage> {
-  DateTime _diaSelecionado = DateTime.now();
-  bool _carregando = false;
-
-  List<String> horariosDisponiveis = [];
-  int _duracaoEmMinutos = 60;
-
-  final horariosService = QuadraHorariosService();
+  final agendaService = AgendaSemanalService();
+  final bloqueioService = BloqueioService();
   final reservaService = ReservaService();
+
+  DateTime diaSelecionado = DateTime.now();
+  int duracao = 60;
+  bool carregando = false;
+
+  List<String> horariosLivres = [];
 
   @override
   void initState() {
     super.initState();
-    _carregarHorarios();
+    carregarHorarios();
   }
 
-  Future<void> _carregarHorarios() async {
-    setState(() => _carregando = true);
+  Future<void> carregarHorarios() async {
+    setState(() => carregando = true);
 
-    final lista = await horariosService.obterHorariosDisponiveis(
-      widget.quadraId,
-      _diaSelecionado,
+    final diaSemana = _mapDiaSemana(diaSelecionado);
+
+    final agenda =
+        await agendaService.buscarAgendaDia(widget.quadraId, diaSemana);
+    if (agenda.isEmpty) {
+      setState(() {
+        horariosLivres = [];
+        carregando = false;
+      });
+      return;
+    }
+
+    final horariosBase = agendaService.gerarHorariosPossiveis(agenda);
+    final intervalo = agenda.first['intervaloMinutos'];
+
+    final bloqueios = await bloqueioService.buscarBloqueios(widget.quadraId);
+    final bloqueados = bloqueioService.gerarBloqueios(
+      bloqueios,
+      diaSemana,
+      diaSelecionado,
+      intervalo,
+      _toTime,
+      _formatTime,
     );
 
+    final reservas =
+        await reservaService.buscarReservasDia(widget.quadraId, diaSelecionado);
+    final reservados = _gerarReservados(reservas, intervalo);
+
     setState(() {
-      horariosDisponiveis = lista;
-      _carregando = false;
+      horariosLivres = horariosBase
+          .where((h) => !bloqueados.contains(h) && !reservados.contains(h))
+          .toList();
+      carregando = false;
     });
   }
 
-  Future<void> _confirmarReserva(String horario) async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2D45),
-        title: const Text(
-          "Confirmar Reserva",
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          "Deseja reservar às $horario por ${_duracaoEmMinutos ~/ 60}h"
-          "${_duracaoEmMinutos % 60 != 0 ? ' ${_duracaoEmMinutos % 60}min' : ''}"
-          " em ${DateFormat('dd/MM/yyyy').format(_diaSelecionado)}?",
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancelar"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF2598C),
-            ),
-            child: const Text("Confirmar"),
-          ),
-        ],
-      ),
-    );
+  Set<String> _gerarReservados(
+    List<Map<String, dynamic>> reservas,
+    int intervalo,
+  ) {
+    final set = <String>{};
 
-    if (confirmar != true) return;
+    for (var r in reservas) {
+      final hi = _toTime(r['horaInicio']);
+      final hf = _toTime(r['horaFim']);
 
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+      var atual = hi;
+      while (atual.isBefore(hf)) {
+        set.add(_formatTime(atual));
+        atual = atual.add(Duration(minutes: intervalo));
+      }
+    }
+    return set;
+  }
+
+  String _mapDiaSemana(DateTime d) {
+    const dias = [
+      "SEGUNDA",
+      "TERCA",
+      "QUARTA",
+      "QUINTA",
+      "SEXTA",
+      "SABADO",
+      "DOMINGO"
+    ];
+    return dias[d.weekday - 1];
+  }
+
+  DateTime _toTime(String h) {
+    final p = h.split(":");
+    return DateTime(0, 0, 0, int.parse(p[0]), int.parse(p[1]));
+  }
+
+  String _formatTime(DateTime t) {
+    return "${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}";
+  }
+
+  Future<void> reservar(String horario) async {
+    final u = FirebaseAuth.instance.currentUser;
+    if (u == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Usuário não autenticado")),
+        const SnackBar(content: Text("Usuário não autenticado.")),
       );
       return;
     }
 
     final partes = horario.split(':');
     final inicio = DateTime(
-      _diaSelecionado.year,
-      _diaSelecionado.month,
-      _diaSelecionado.day,
+      diaSelecionado.year,
+      diaSelecionado.month,
+      diaSelecionado.day,
       int.parse(partes[0]),
       int.parse(partes[1]),
     );
 
-    final fim = inicio.add(Duration(minutes: _duracaoEmMinutos));
+    final fim = inicio.add(Duration(minutes: duracao));
 
-    final reserva = ReservaQuadra(
-      id: "",
+    await reservaService.criarReserva(
       quadraId: widget.quadraId,
-      data: _diaSelecionado,
-      horaInicio: DateFormat.Hm().format(inicio),
-      horaFim: DateFormat.Hm().format(fim),
-      status: "CONFIRMADA",
-      usuarioId: user.uid,
-      usuarioNome: user.displayName ?? 'Usuário',
-      usuarioEmail: user.email,
-      criadoEm: DateTime.now(),
+      data: diaSelecionado,
+      horaInicio: _formatTime(inicio),
+      horaFim: _formatTime(fim),
+      usuarioId: u.uid,
+      usuarioNome: u.displayName ?? "Usuário",
+      usuarioEmail: u.email,
     );
-
-    await reservaService.criarReserva(widget.quadraId, reserva);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Reserva realizada com sucesso!")),
@@ -143,14 +173,16 @@ class _ReservarQuadraPageState extends State<ReservarQuadraPage> {
             const Text("Selecione o dia:",
                 style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 8),
+
+            // Dias da semana
             SizedBox(
               height: 50,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: dias.map((dia) {
-                  final selecionado = dia.day == _diaSelecionado.day &&
-                      dia.month == _diaSelecionado.month &&
-                      dia.year == _diaSelecionado.year;
+                  final selecionado = dia.day == diaSelecionado.day &&
+                      dia.month == diaSelecionado.month &&
+                      dia.year == diaSelecionado.year;
 
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
@@ -161,8 +193,8 @@ class _ReservarQuadraPageState extends State<ReservarQuadraPage> {
                             : const Color(0xFF1E2D45),
                       ),
                       onPressed: () {
-                        setState(() => _diaSelecionado = dia);
-                        _carregarHorarios();
+                        setState(() => diaSelecionado = dia);
+                        carregarHorarios();
                       },
                       child: Text(DateFormat('dd/MM').format(dia)),
                     ),
@@ -170,37 +202,42 @@ class _ReservarQuadraPageState extends State<ReservarQuadraPage> {
                 }).toList(),
               ),
             ),
+
             const SizedBox(height: 16),
+
+            // Duração
             DropdownButtonFormField<int>(
-              value: _duracaoEmMinutos,
-              items: const [
-                DropdownMenuItem(value: 60, child: Text('1h')),
-                DropdownMenuItem(value: 90, child: Text('1h30')),
-                DropdownMenuItem(value: 120, child: Text('2h')),
-                DropdownMenuItem(value: 150, child: Text('2h30')),
-                DropdownMenuItem(value: 180, child: Text('3h')),
-              ],
+              value: duracao,
               dropdownColor: const Color(0xFF1E2D45),
               style: const TextStyle(color: Colors.white),
+              items: const [
+                DropdownMenuItem(value: 60, child: Text("1h")),
+                DropdownMenuItem(value: 90, child: Text("1h30")),
+                DropdownMenuItem(value: 120, child: Text("2h")),
+              ],
+              onChanged: (v) => setState(() => duracao = v!),
               decoration: const InputDecoration(
-                labelText: "Duração da reserva",
+                labelText: 'Duração',
                 labelStyle: TextStyle(color: Colors.white70),
               ),
-              onChanged: (v) => setState(() => _duracaoEmMinutos = v!),
             ),
+
             const SizedBox(height: 16),
-            _carregando
-                ? const Center(child: CircularProgressIndicator())
-                : horariosDisponiveis.isEmpty
-                    ? const Text(
-                        "Nenhum horário disponível.",
-                        style: TextStyle(color: Colors.white70),
-                      )
-                    : Expanded(
-                        child: ListView.builder(
-                          itemCount: horariosDisponiveis.length,
-                          itemBuilder: (ctx, i) {
-                            final h = horariosDisponiveis[i];
+
+            Expanded(
+              child: carregando
+                  ? const Center(child: CircularProgressIndicator())
+                  : horariosLivres.isEmpty
+                      ? const Center(
+                          child: Text(
+                            "Nenhum horário disponível.",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: horariosLivres.length,
+                          itemBuilder: (_, i) {
+                            final h = horariosLivres[i];
                             return Card(
                               color: const Color(0xFF1E2D45),
                               child: ListTile(
@@ -208,12 +245,14 @@ class _ReservarQuadraPageState extends State<ReservarQuadraPage> {
                                   h,
                                   style: const TextStyle(color: Colors.white),
                                 ),
-                                onTap: () => _confirmarReserva(h),
+                                trailing: const Icon(Icons.arrow_forward_ios,
+                                    color: Colors.white70),
+                                onTap: () => reservar(h),
                               ),
                             );
                           },
                         ),
-                      ),
+            ),
           ],
         ),
       ),

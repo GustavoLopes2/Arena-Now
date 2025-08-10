@@ -4,11 +4,28 @@ import '../models/reserva_quadra.dart';
 class ReservaService {
   final _db = FirebaseFirestore.instance;
 
-  Future<void> criarReserva(String quadraId, ReservaQuadra r) async {
+  Future<void> criarReserva({
+    required String quadraId,
+    required DateTime data,
+    required String horaInicio,
+    required String horaFim,
+    required String usuarioId,
+    required String usuarioNome,
+    required String? usuarioEmail,
+  }) async {
     final doc =
         _db.collection('quadras').doc(quadraId).collection('reservas').doc();
 
-    await doc.set(r.toMap());
+    await doc.set({
+      'data': Timestamp.fromDate(data),
+      'horaInicio': horaInicio,
+      'horaFim': horaFim,
+      'status': 'CONFIRMADA',
+      'usuarioId': usuarioId,
+      'usuarioNome': usuarioNome,
+      'usuarioEmail': usuarioEmail,
+      'criadoEm': Timestamp.now(),
+    });
   }
 
   Stream<List<ReservaQuadra>> listarReservas(String quadraId) {
@@ -128,5 +145,25 @@ class ReservaService {
       'status': 'CANCELADA_USUARIO',
       'dataCancelamento': Timestamp.now(),
     });
+  }
+
+  Future<List<Map<String, dynamic>>> buscarReservasDia(
+      String quadraId, DateTime dia) async {
+    final snap = await _db
+        .collection('quadras')
+        .doc(quadraId)
+        .collection('reservas')
+        .where('data',
+            isGreaterThanOrEqualTo:
+                Timestamp.fromDate(DateTime(dia.year, dia.month, dia.day)))
+        .where(
+          'data',
+          isLessThan: Timestamp.fromDate(
+            DateTime(dia.year, dia.month, dia.day + 1),
+          ),
+        )
+        .get();
+
+    return snap.docs.map((d) => d.data()).toList();
   }
 }

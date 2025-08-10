@@ -1,3 +1,4 @@
+import 'package:arenanow/modules/user/view/user_root_page.dart';
 import 'package:flutter/material.dart';
 import 'package:arenanow/modules/auth/auth_service.dart';
 import 'register_page.dart';
@@ -18,13 +19,18 @@ class _LoginPageState extends State<LoginPage> {
 
   void _login() async {
     setState(() => _loading = true);
+
     try {
       final user = await _authService.login(
         _emailController.text.trim(),
         _passwordController.text.trim(),
       );
+
       if (user != null) {
-        // Navegar automaticamente via AuthGate
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const UserRootPage()),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -50,7 +56,7 @@ class _LoginPageState extends State<LoginPage> {
                   padding: const EdgeInsets.only(bottom: 32),
                   child: Image.asset(
                     'assets/images/logoArenaNow.png',
-                    width: 400, // Ajuste proporcional à tela
+                    width: 400,
                     fit: BoxFit.contain,
                   ),
                 ),
