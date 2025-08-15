@@ -1,9 +1,9 @@
+import 'package:arenanow/modules/user/view/user_root_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../home/home_page.dart';
 import 'login_page.dart';
-import '../user/user_dashboard_page.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -32,18 +32,13 @@ class AuthGate extends StatelessWidget {
                     body: Center(child: CircularProgressIndicator()));
               }
 
-              if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-                return const Scaffold(
-                    body: Center(child: Text('Usuário não encontrado.')));
-              }
-
               final data = userSnapshot.data!.data() as Map<String, dynamic>;
               final role = data['role'];
 
               if (role == 'admin') {
                 return HomePage();
               } else {
-                return const UserDashboardPage();
+                return const UserRootPage();
               }
             },
           );

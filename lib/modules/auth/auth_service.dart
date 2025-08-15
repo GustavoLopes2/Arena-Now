@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService {
@@ -21,6 +22,15 @@ class AuthService {
 
   Future<void> logout() async {
     await _auth.signOut();
+  }
+
+  Future<String?> getUserRole(String uid) async {
+    final snap =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+    if (!snap.exists) return null;
+
+    return snap.data()?['role'] ?? 'USER';
   }
 
   Stream<User?> get userChanges => _auth.authStateChanges();

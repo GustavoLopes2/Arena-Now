@@ -41,5 +41,14 @@ class AuthService {
     return cred.user;
   }
 
+  Future<String?> getUserRole(String uid) async {
+    final snap =
+        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+
+    if (!snap.exists) return null;
+
+    return snap.data()?['role'] ?? 'USER';
+  }
+
   Future<void> logout() => _auth.signOut();
 }

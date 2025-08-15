@@ -3,11 +3,11 @@ import 'package:arenanow/models/quadra.dart';
 import 'package:arenanow/services/quadra_service.dart';
 import 'package:arenanow/modules/user/register/register_reserva_quadra_page.dart';
 
-class VisualizarQuadraPage extends StatelessWidget {
+class VisualizarQuadraUserPage extends StatelessWidget {
   final String estabelecimentoId;
   final String nomeEstabelecimento;
 
-  const VisualizarQuadraPage({
+  const VisualizarQuadraUserPage({
     super.key,
     required this.estabelecimentoId,
     required this.nomeEstabelecimento,
