@@ -1,3 +1,4 @@
+import 'package:arenanow/modules/user/view/reserva_detalhe_page.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -143,108 +144,97 @@ class _MinhasReservasPageState extends State<MinhasReservasPage> {
 
   Widget _buildReservaCard(ReservaQuadra r, bool podeCancelar) {
     final statusColor = _getStatusColor(r.status);
+    final userId = FirebaseAuth.instance.currentUser!.uid;
+    final bool podeCancelarReserva =
+        podeCancelar && r.status == "CONFIRMADA" && r.usuarioId == userId;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF16243D),
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.28),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+    return GestureDetector(
+      onTap: () async {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ReservaDetalhePage(
+              reserva: r,
+              podeCancelar: podeCancelarReserva,
+            ),
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.15),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(18),
-                topRight: Radius.circular(18),
+        );
+
+        if (mounted) setState(() {});
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF16243D),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.28),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.15),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                ),
               ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.sports_soccer, color: statusColor, size: 22),
-                const SizedBox(width: 8),
-                Text(
-                  r.nomeQuadra ?? "Quadra",
-                  style: TextStyle(
-                    color: statusColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                )
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_month,
-                        color: Colors.white70, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      DateFormat('dd/MM/yyyy').format(r.data),
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.schedule, color: Colors.white70, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      "${r.horaInicio} - ${r.horaFim}",
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: statusColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    r.status.replaceAll("_", " "),
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                if (podeCancelar && r.status == "CONFIRMADA") ...[
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => _confirmarCancelamento(r),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF2598C),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text("Cancelar Reserva"),
+              child: Row(
+                children: [
+                  Icon(Icons.sports_soccer, color: statusColor, size: 22),
+                  const SizedBox(width: 8),
+                  Text(
+                    r.nomeQuadra ?? "Quadra",
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
                   )
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_month,
+                          color: Colors.white70, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        DateFormat('dd/MM/yyyy').format(r.data),
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 15),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule,
+                          color: Colors.white70, size: 18),
+                      const SizedBox(width: 6),
+                      Text(
+                        "${r.horaInicio} - ${r.horaFim}",
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -259,35 +249,6 @@ class _MinhasReservasPageState extends State<MinhasReservasPage> {
         return Colors.redAccent.shade200;
       default:
         return Colors.white70;
-    }
-  }
-
-  Future<void> _confirmarCancelamento(ReservaQuadra r) async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2D45),
-        title: const Text("Cancelar Reserva",
-            style: TextStyle(color: Colors.white)),
-        content: const Text(
-          "Deseja realmente cancelar esta reserva?",
-          style: TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            child: const Text("Não"),
-            onPressed: () => Navigator.pop(context, false),
-          ),
-          ElevatedButton(
-            child: const Text("Sim, cancelar"),
-            onPressed: () => Navigator.pop(context, true),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar == true) {
-      await ReservaService().cancelarReservaUsuario(r.quadraId, r.id);
     }
   }
 }

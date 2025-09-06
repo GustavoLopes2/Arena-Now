@@ -163,67 +163,91 @@ class _ReservarQuadraPageState extends State<ReservarQuadraPage> {
       backgroundColor: const Color(0xFF0E1A2F),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E1A2F),
-        title: Text(widget.quadraNome),
+        elevation: 0,
+        title: Text(
+          widget.quadraNome,
+          style: const TextStyle(color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Selecione o dia:",
-                style: TextStyle(color: Colors.white70)),
-            const SizedBox(height: 8),
-
-            // Dias da semana
+            const Text(
+              "Selecione o dia",
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 10),
             SizedBox(
-              height: 50,
+              height: 70,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 children: dias.map((dia) {
-                  final selecionado = dia.day == diaSelecionado.day &&
+                  final selecionado = dia.year == diaSelecionado.year &&
                       dia.month == diaSelecionado.month &&
-                      dia.year == diaSelecionado.year;
+                      dia.day == diaSelecionado.day;
 
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: selecionado
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() => diaSelecionado = dia);
+                      carregarHorarios();
+                    },
+                    child: Container(
+                      width: 80,
+                      margin: const EdgeInsets.only(right: 8),
+                      decoration: BoxDecoration(
+                        color: selecionado
                             ? const Color(0xFFF2598C)
                             : const Color(0xFF1E2D45),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.25),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      onPressed: () {
-                        setState(() => diaSelecionado = dia);
-                        carregarHorarios();
-                      },
-                      child: Text(DateFormat('dd/MM').format(dia)),
+                      child: Center(
+                        child: Text(
+                          DateFormat('dd/MM').format(dia),
+                          style: const TextStyle(
+                              color: Colors.white, fontSize: 16),
+                        ),
+                      ),
                     ),
                   );
                 }).toList(),
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // Duração
+            const SizedBox(height: 20),
             DropdownButtonFormField<int>(
               value: duracao,
               dropdownColor: const Color(0xFF1E2D45),
               style: const TextStyle(color: Colors.white),
               items: const [
                 DropdownMenuItem(value: 60, child: Text("1h")),
-                DropdownMenuItem(value: 90, child: Text("1h30")),
+                DropdownMenuItem(value: 90, child: Text("1h 30m")),
                 DropdownMenuItem(value: 120, child: Text("2h")),
               ],
               onChanged: (v) => setState(() => duracao = v!),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFF16243D),
                 labelText: 'Duração',
-                labelStyle: TextStyle(color: Colors.white70),
+                labelStyle: const TextStyle(color: Colors.white70),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
-
-            const SizedBox(height: 16),
-
+            const SizedBox(height: 20),
             Expanded(
               child: carregando
                   ? const Center(child: CircularProgressIndicator())
@@ -234,25 +258,48 @@ class _ReservarQuadraPageState extends State<ReservarQuadraPage> {
                             style: TextStyle(color: Colors.white70),
                           ),
                         )
-                      : ListView.builder(
+                      : ListView.separated(
                           itemCount: horariosLivres.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
                           itemBuilder: (_, i) {
                             final h = horariosLivres[i];
-                            return Card(
-                              color: const Color(0xFF1E2D45),
-                              child: ListTile(
-                                title: Text(
-                                  h,
-                                  style: const TextStyle(color: Colors.white),
+
+                            return InkWell(
+                              onTap: () => reservar(h),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
                                 ),
-                                trailing: const Icon(Icons.arrow_forward_ios,
-                                    color: Colors.white70),
-                                onTap: () => reservar(h),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E2D45),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                      color: Colors.white24, width: 0.7),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      h,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right,
+                                        color: Colors.white54, size: 22),
+                                  ],
+                                ),
                               ),
                             );
                           },
                         ),
-            ),
+            )
           ],
         ),
       ),
