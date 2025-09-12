@@ -1,5 +1,5 @@
 import 'package:arenanow/modules/user/view/visualizar_quadra_user_page.dart';
-import 'package:arenanow/widgets/dashboard_header.dart';
+import 'package:arenanow/widgets/user_app_bar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:arenanow/modules/user/navigation/user_navigator.dart';
@@ -11,11 +11,14 @@ class ListaEstabelecimentosUserPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
+      appBar: const UserAppBar(
+        title: "Estabelecimentos",
+        showBack: false,
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const DashboardHeader(),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 24),
               child: Text(

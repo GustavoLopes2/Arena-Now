@@ -6,21 +6,22 @@ class UserNavigator {
     return context.findAncestorStateOfType<UserRootPageState>();
   }
 
+  static bool canPop(BuildContext context) {
+    final state = _getState(context);
+    return state != null && state.hasPages;
+  }
+
   static void push(BuildContext context, Widget page) {
-    final root = _getState(context);
-    if (root != null) {
-      root.openPage(page);
-    } else {
-      debugPrint("⚠ UserNavigator.push foi chamado fora do UserRootPage");
+    final state = _getState(context);
+    if (state != null) {
+      state.openPage(page);
     }
   }
 
   static void pop(BuildContext context) {
-    final root = _getState(context);
-    if (root != null && root.hasPages) {
-      root.closePage();
-    } else {
-      Navigator.pop(context);
+    final state = _getState(context);
+    if (state != null && state.hasPages) {
+      state.closePage();
     }
   }
 }

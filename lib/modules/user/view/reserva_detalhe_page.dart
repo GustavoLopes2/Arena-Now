@@ -1,3 +1,4 @@
+import 'package:arenanow/widgets/user_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:arenanow/models/reserva_quadra.dart';
@@ -19,14 +20,8 @@ class ReservaDetalhePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1A2F),
-        title: const Text(
-          "Detalhes da Reserva",
-          style: TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      appBar:
+          UserAppBar(title: reserva.nomeQuadra ?? "Detalhes", showBack: true),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(

@@ -1,3 +1,4 @@
+import 'package:arenanow/widgets/user_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:arenanow/models/quadra.dart';
 import 'package:arenanow/services/quadra_service.dart';
@@ -19,14 +20,7 @@ class VisualizarQuadraUserPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0E1A2F),
-        title: Text(
-          nomeEstabelecimento,
-          style: const TextStyle(color: Colors.white),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      appBar: const UserAppBar(title: "Quadras", showBack: true),
       body: SafeArea(
         child: StreamBuilder<List<Quadra>>(
           stream:

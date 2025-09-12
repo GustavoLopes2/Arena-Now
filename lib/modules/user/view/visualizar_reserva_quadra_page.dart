@@ -1,8 +1,8 @@
 import 'package:arenanow/modules/user/view/reserva_detalhe_page.dart';
+import 'package:arenanow/widgets/user_app_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:arenanow/widgets/dashboard_header.dart';
 
 import 'package:arenanow/services/reserva_service.dart';
 import 'package:arenanow/models/reserva_quadra.dart';
@@ -29,29 +29,32 @@ class _MinhasReservasPageState extends State<MinhasReservasPage> {
 
     final reservaService = ReservaService();
 
-    return SafeArea(
-      child: Column(
+    return Scaffold(
+      backgroundColor: const Color(0xFF0E1A2F),
+      appBar: const UserAppBar(
+        title: "Minhas Reservas",
+        showBack: false,
+      ),
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const DashboardHeader(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'MINHAS RESERVAS',
+                  'FILTRO',
                   style: TextStyle(
                     color: Colors.white60,
                     fontSize: 14,
-                    letterSpacing: 1.5,
                   ),
                 ),
                 DropdownButton<String>(
                   value: filtroStatus,
                   dropdownColor: const Color(0xFF1E2D45),
-                  underline: Container(),
                   style: const TextStyle(color: Colors.white),
+                  underline: Container(),
                   iconEnabledColor: Colors.white,
                   items: const [
                     DropdownMenuItem(value: 'TODOS', child: Text('Todos')),
@@ -64,12 +67,13 @@ class _MinhasReservasPageState extends State<MinhasReservasPage> {
                         value: 'CANCELADA_ADMIN',
                         child: Text('Canceladas pelo admin')),
                   ],
-                  onChanged: (v) => setState(() => filtroStatus = v!),
+                  onChanged: (v) {
+                    setState(() => filtroStatus = v!);
+                  },
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
           Expanded(
             child: StreamBuilder<List<ReservaQuadra>>(
               stream: reservaService.listarReservasDoUsuario(user.uid),
@@ -145,12 +149,13 @@ class _MinhasReservasPageState extends State<MinhasReservasPage> {
   Widget _buildReservaCard(ReservaQuadra r, bool podeCancelar) {
     final statusColor = _getStatusColor(r.status);
     final userId = FirebaseAuth.instance.currentUser!.uid;
+
     final bool podeCancelarReserva =
         podeCancelar && r.status == "CONFIRMADA" && r.usuarioId == userId;
 
     return GestureDetector(
       onTap: () async {
-        await Navigator.push(
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => ReservaDetalhePage(
@@ -160,81 +165,85 @@ class _MinhasReservasPageState extends State<MinhasReservasPage> {
           ),
         );
 
-        if (mounted) setState(() {});
+        if (result == true && mounted) {
+          setState(() {});
+        }
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF16243D),
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.28),
-              blurRadius: 10,
-              offset: const Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.15),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  topRight: Radius.circular(18),
-                ),
+      child: _buildReservaCardContent(r, statusColor),
+    );
+  }
+
+  Widget _buildReservaCardContent(ReservaQuadra r, Color statusColor) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16243D),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.28),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: statusColor.withOpacity(0.15),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
               ),
-              child: Row(
-                children: [
-                  Icon(Icons.sports_soccer, color: statusColor, size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    r.nomeQuadra ?? "Quadra",
-                    style: TextStyle(
-                      color: statusColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.sports_soccer, color: statusColor, size: 22),
+                const SizedBox(width: 8),
+                Text(
+                  r.nomeQuadra ?? "Quadra",
+                  style: TextStyle(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                )
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_month,
+                        color: Colors.white70, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      DateFormat('dd/MM/yyyy').format(r.data),
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
                     ),
-                  )
-                ],
-              ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule, color: Colors.white70, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      "${r.horaInicio} - ${r.horaFim}",
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.calendar_month,
-                          color: Colors.white70, size: 18),
-                      const SizedBox(width: 6),
-                      Text(
-                        DateFormat('dd/MM/yyyy').format(r.data),
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 15),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.schedule,
-                          color: Colors.white70, size: 18),
-                      const SizedBox(width: 6),
-                      Text(
-                        "${r.horaInicio} - ${r.horaFim}",
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
