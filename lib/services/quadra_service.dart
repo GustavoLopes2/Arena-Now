@@ -1,9 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/quadra.dart';
 import '../models/foto_quadra.dart';
 
 class QuadraService {
   final _db = FirebaseFirestore.instance;
+  final _storage = FirebaseStorage.instance;
 
   Future<String> criarQuadra(Quadra q) async {
     final doc = _db.collection('quadras').doc();
@@ -43,5 +46,19 @@ class QuadraService {
 
     if (snap.docs.isEmpty) return null;
     return snap.docs.first.data()['url'];
+  }
+
+  Future<String> uploadFotoQuadra(String quadraId, XFile file) async {
+    final bytes = await file.readAsBytes();
+    final ext = file.name.split(".").last;
+
+    final ref = _storage.ref().child("quadras/$quadraId/foto.$ext");
+
+    await ref.putData(
+      bytes,
+      SettableMetadata(contentType: "image/$ext"),
+    );
+
+    return await ref.getDownloadURL();
   }
 }

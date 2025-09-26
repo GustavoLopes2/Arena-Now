@@ -1,8 +1,11 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:arenanow/modules/admin/register/register_agenda_semanal_page.dart';
+import 'package:image_picker/image_picker.dart';
+
 import 'package:arenanow/models/quadra.dart';
 import 'package:arenanow/models/foto_quadra.dart';
 import 'package:arenanow/services/quadra_service.dart';
+import 'package:arenanow/modules/admin/register/register_agenda_semanal_page.dart';
 
 class RegisterQuadraPage extends StatefulWidget {
   final String estabelecimentoId;
@@ -17,10 +20,26 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
   final _formKey = GlobalKey<FormState>();
   final _nomeController = TextEditingController();
   final _descricaoController = TextEditingController();
-  final _fotoController = TextEditingController();
 
   String _modalidade = 'BEACH_TENNIS';
   bool _isLoading = false;
+
+  XFile? _selectedImage;
+  Uint8List? _imagePreview;
+
+  final ImagePicker _picker = ImagePicker();
+
+  Future<void> _selecionarImagem() async {
+    final XFile? file = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (file != null) {
+      final bytes = await file.readAsBytes();
+      setState(() {
+        _selectedImage = file;
+        _imagePreview = bytes;
+      });
+    }
+  }
 
   Future<void> _cadastrarQuadra() async {
     if (!_formKey.currentState!.validate()) return;
@@ -37,18 +56,17 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
         criadoEm: DateTime.now(),
       );
 
-      final service = QuadraService();
+      final quadraService = QuadraService();
 
-      final quadraId = await service.criarQuadra(quadra);
+      final quadraId = await quadraService.criarQuadra(quadra);
 
-      if (_fotoController.text.trim().isNotEmpty) {
-        await service.salvarFotoQuadra(
+      if (_selectedImage != null) {
+        final url =
+            await quadraService.uploadFotoQuadra(quadraId, _selectedImage!);
+
+        await quadraService.salvarFotoQuadra(
           quadraId,
-          FotoQuadra(
-            id: "",
-            quadraId: quadraId,
-            url: _fotoController.text.trim(),
-          ),
+          FotoQuadra(id: "", quadraId: quadraId, url: url),
         );
       }
 
@@ -64,9 +82,7 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao cadastrar quadra: ${e.toString()}'),
-        ),
+        SnackBar(content: Text('Erro ao cadastrar quadra: $e')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -127,13 +143,25 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
                 ],
                 onChanged: (value) => setState(() => _modalidade = value!),
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _fotoController,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('URL da foto (temporário)'),
-              ),
               const SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _selecionarImagem,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF2598C),
+                ),
+                child: const Text("Selecionar foto da quadra"),
+              ),
+              const SizedBox(height: 16),
+              if (_imagePreview != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.memory(
+                    _imagePreview!,
+                    height: 180,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              const SizedBox(height: 30),
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : SizedBox(
@@ -142,10 +170,7 @@ class _RegisterQuadraPageState extends State<RegisterQuadraPage> {
                         onPressed: _cadastrarQuadra,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFF2598C),
-                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
                         ),
                         child: const Text('Cadastrar Quadra'),
                       ),

@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:arenanow/models/estabelecimento.dart';
 import 'package:arenanow/models/foto_estabelecimento.dart';
 import 'package:arenanow/services/estabelecimento_service.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 class RegisterEstabelecimentoPage extends StatefulWidget {
   const RegisterEstabelecimentoPage({super.key});
@@ -19,12 +22,39 @@ class _RegisterEstabelecimentoPageState
   final _enderecoController = TextEditingController();
   final _descricaoController = TextEditingController();
   final _prazoCancelamentoController = TextEditingController();
-  final _fotoController = TextEditingController();
 
+  File? _imagemSelecionada;
   bool _isLoading = false;
+
+  Future<void> _selecionarImagem() async {
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery);
+
+    if (picked != null) {
+      setState(() => _imagemSelecionada = File(picked.path));
+    }
+  }
+
+  Future<String?> _uploadImagem(String estabelecimentoId) async {
+    if (_imagemSelecionada == null) return null;
+
+    try {
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child("estabelecimentos/$estabelecimentoId/foto.jpg");
+
+      await ref.putFile(_imagemSelecionada!);
+
+      return await ref.getDownloadURL();
+    } catch (e) {
+      print("Erro ao enviar imagem: $e");
+      return null;
+    }
+  }
 
   Future<void> _cadastrarEstabelecimento() async {
     if (!_formKey.currentState!.validate()) return;
+
     setState(() => _isLoading = true);
 
     try {
@@ -45,28 +75,30 @@ class _RegisterEstabelecimentoPageState
 
       final id = await service.criarEstabelecimento(estabelecimento);
 
-      if (_fotoController.text.trim().isNotEmpty) {
-        await service.adicionarFotoEstabelecimento(
-          id,
-          FotoEstabelecimento(
-            id: "",
-            estabelecimentoId: id,
-            url: _fotoController.text.trim(),
-          ),
-        );
+      if (_imagemSelecionada != null) {
+        final url = await _uploadImagem(id);
+
+        if (url != null) {
+          await service.adicionarFotoEstabelecimento(
+            id,
+            FotoEstabelecimento(
+              id: "",
+              estabelecimentoId: id,
+              url: url,
+            ),
+          );
+        }
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Estabelecimento cadastrado com sucesso!'),
-        ),
+            content: Text("Estabelecimento cadastrado com sucesso!")),
       );
 
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro: ${e.toString()}')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Erro: $e")));
     } finally {
       setState(() => _isLoading = false);
     }
@@ -88,7 +120,7 @@ class _RegisterEstabelecimentoPageState
       backgroundColor: const Color(0xFF0E1A2F),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E1A2F),
-        title: const Text('Cadastrar Estabelecimento'),
+        title: const Text("Cadastrar Estabelecimento"),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
@@ -96,40 +128,64 @@ class _RegisterEstabelecimentoPageState
           key: _formKey,
           child: ListView(
             children: [
+              GestureDetector(
+                onTap: _selecionarImagem,
+                child: Container(
+                  height: 180,
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white30),
+                  ),
+                  child: _imagemSelecionada != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(_imagemSelecionada!,
+                              fit: BoxFit.cover),
+                        )
+                      : const Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.camera_alt,
+                                  size: 40, color: Colors.white70),
+                              SizedBox(height: 8),
+                              Text("Selecionar imagem",
+                                  style: TextStyle(color: Colors.white70)),
+                            ],
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _nomeController,
-                validator: (v) => v!.isEmpty ? 'Informe o nome' : null,
+                validator: (v) => v!.isEmpty ? "Informe o nome" : null,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Nome'),
+                decoration: _inputDecoration("Nome"),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _enderecoController,
-                validator: (v) => v!.isEmpty ? 'Informe o endereço' : null,
+                validator: (v) => v!.isEmpty ? "Informe o endereço" : null,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Endereço'),
+                decoration: _inputDecoration("Endereço"),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descricaoController,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Descrição'),
+                decoration: _inputDecoration("Descrição"),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _prazoCancelamentoController,
                 validator: (v) => v!.isEmpty || int.tryParse(v) == null
-                    ? 'Número inválido'
+                    ? "Número inválido"
                     : null,
                 keyboardType: TextInputType.number,
                 style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('Prazo para cancelamento (horas)'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _fotoController,
-                style: const TextStyle(color: Colors.white),
-                decoration: _inputDecoration('URL da foto (temporário)'),
+                decoration: _inputDecoration("Prazo para cancelamento (horas)"),
               ),
               const SizedBox(height: 20),
               _isLoading
@@ -145,7 +201,7 @@ class _RegisterEstabelecimentoPageState
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Cadastrar Estabelecimento'),
+                        child: const Text("Cadastrar Estabelecimento"),
                       ),
                     ),
             ],
