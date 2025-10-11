@@ -19,19 +19,14 @@ class VisualizarQuadraPage extends StatelessWidget {
     required this.nomeQuadra,
   });
 
-  void _abrirDialogEdicao(
-    BuildContext context,
-    AgendaSemanal agenda,
-  ) {
+  void _abrirDialogEdicao(BuildContext context, AgendaSemanal agenda) {
     final inicioController = TextEditingController(text: agenda.horaInicio);
     final fimController = TextEditingController(text: agenda.horaFim);
     final intervaloController =
         TextEditingController(text: agenda.intervaloMinutos.toString());
 
     bool validarHorario(String inicio, String fim) {
-      final i = _toMinutes(inicio);
-      final f = _toMinutes(fim);
-      return f > i;
+      return _toMinutes(fim) > _toMinutes(inicio);
     }
 
     final service = AgendaService();
@@ -40,38 +35,28 @@ class VisualizarQuadraPage extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1E2D45),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Editar ${agenda.diaSemana}',
-          style: const TextStyle(color: Colors.white),
+          style: const TextStyle(color: Colors.white, fontSize: 18),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
-              controller: inicioController,
-              decoration: const InputDecoration(labelText: 'Hora Início'),
-            ),
-            TextField(
-              controller: fimController,
-              decoration: const InputDecoration(labelText: 'Hora Fim'),
-            ),
-            TextField(
-              controller: intervaloController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Intervalo (min)'),
-            ),
+            _campoEdicao(inicioController, "Hora início (HH:MM)"),
+            const SizedBox(height: 10),
+            _campoEdicao(fimController, "Hora fim (HH:MM)"),
+            const SizedBox(height: 10),
+            _campoEdicao(intervaloController, "Intervalo (min)", number: true),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child:
-                const Text('Cancelar', style: TextStyle(color: Colors.white)),
+                const Text('Cancelar', style: TextStyle(color: Colors.white70)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFF2598C),
-            ),
             onPressed: () async {
               final inicio = inicioController.text.trim();
               final fim = fimController.text.trim();
@@ -80,10 +65,7 @@ class VisualizarQuadraPage extends StatelessWidget {
               if (!validarHorario(inicio, fim)) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text(
-                      'Horário final deve ser maior que o inicial',
-                    ),
-                  ),
+                      content: Text("Horário final deve ser maior.")),
                 );
                 return;
               }
@@ -98,9 +80,28 @@ class VisualizarQuadraPage extends StatelessWidget {
 
               Navigator.pop(context);
             },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFF2598C),
+            ),
             child: const Text("Salvar"),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _campoEdicao(TextEditingController c, String label,
+      {bool number = false}) {
+    return TextField(
+      controller: c,
+      keyboardType: number ? TextInputType.number : TextInputType.text,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white70),
+        filled: true,
+        fillColor: const Color(0xFF0E1A2F),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -118,15 +119,27 @@ class VisualizarQuadraPage extends StatelessWidget {
       backgroundColor: const Color(0xFF0E1A2F),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E1A2F),
-        title: Text(nomeQuadra),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: Text(
+          nomeQuadra,
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Text(
-              "Horários Cadastrados",
-              style: TextStyle(color: Colors.white70, fontSize: 18),
+            Row(
+              children: const [
+                Icon(Icons.schedule, color: Colors.white70),
+                SizedBox(width: 8),
+                Text(
+                  "Horários cadastrados",
+                  style: TextStyle(color: Colors.white70, fontSize: 18),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -151,25 +164,7 @@ class VisualizarQuadraPage extends StatelessWidget {
                   return ListView.builder(
                     itemCount: agendas.length,
                     itemBuilder: (context, index) {
-                      final a = agendas[index];
-
-                      return Card(
-                        color: const Color(0xFF1E2D45),
-                        child: ListTile(
-                          title: Text(
-                            a.diaSemana,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          subtitle: Text(
-                            "Das ${a.horaInicio} às ${a.horaFim} • ${a.intervaloMinutos} min",
-                            style: const TextStyle(color: Colors.white70),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.white70),
-                            onPressed: () => _abrirDialogEdicao(context, a),
-                          ),
-                        ),
-                      );
+                      return _cardAgenda(context, agendas[index]);
                     },
                   );
                 },
@@ -179,13 +174,18 @@ class VisualizarQuadraPage extends StatelessWidget {
         ),
       ),
       floatingActionButton: SpeedDial(
+        backgroundColor: const Color(0xFFF2598C),
+        foregroundColor: Colors.white,
         icon: Icons.add,
         activeIcon: Icons.close,
-        backgroundColor: const Color(0xFFF2598C),
+        spacing: 10,
+        spaceBetweenChildren: 8,
+        elevation: 6,
         children: [
           SpeedDialChild(
+            backgroundColor: Colors.white,
+            label: 'Adicionar horário',
             child: const Icon(Icons.access_time),
-            label: 'Adicionar Horário',
             onTap: () {
               Navigator.push(
                 context,
@@ -197,8 +197,9 @@ class VisualizarQuadraPage extends StatelessWidget {
             },
           ),
           SpeedDialChild(
+            backgroundColor: Colors.white,
+            label: 'Adicionar bloqueio',
             child: const Icon(Icons.block),
-            label: 'Adicionar Bloqueio',
             onTap: () {
               Navigator.push(
                 context,
@@ -209,8 +210,9 @@ class VisualizarQuadraPage extends StatelessWidget {
             },
           ),
           SpeedDialChild(
+            backgroundColor: Colors.white,
+            label: 'Ver bloqueios',
             child: const Icon(Icons.list),
-            label: 'Ver Bloqueios',
             onTap: () {
               Navigator.push(
                 context,
@@ -221,21 +223,59 @@ class VisualizarQuadraPage extends StatelessWidget {
             },
           ),
           SpeedDialChild(
+            backgroundColor: Colors.white,
+            label: 'Ver reservas',
             child: const Icon(Icons.event_note),
-            label: 'Ver Reservas',
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (_) => VisualizarReservasPage(
-                    quadraId: quadraId,
-                    quadraNome: nomeQuadra,
-                  ),
+                      quadraId: quadraId, quadraNome: nomeQuadra),
                 ),
               );
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _cardAgenda(BuildContext context, AgendaSemanal a) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF16243D),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          a.diaSemana,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 6),
+          child: Text(
+            "Das ${a.horaInicio} às ${a.horaFim}\nIntervalo: ${a.intervaloMinutos} min",
+            style: const TextStyle(color: Colors.white70, height: 1.4),
+          ),
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.edit, color: Colors.white70),
+          onPressed: () => _abrirDialogEdicao(context, a),
+        ),
       ),
     );
   }

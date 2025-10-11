@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -23,15 +23,23 @@ class _RegisterEstabelecimentoPageState
   final _descricaoController = TextEditingController();
   final _prazoCancelamentoController = TextEditingController();
 
-  File? _imagemSelecionada;
+  XFile? _imagemSelecionada;
+  Uint8List? _imagePreview;
+
   bool _isLoading = false;
 
+  final ImagePicker _picker = ImagePicker();
+
   Future<void> _selecionarImagem() async {
-    final picker = ImagePicker();
-    final picked = await picker.pickImage(source: ImageSource.gallery);
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
 
     if (picked != null) {
-      setState(() => _imagemSelecionada = File(picked.path));
+      final bytes = await picked.readAsBytes();
+
+      setState(() {
+        _imagemSelecionada = picked;
+        _imagePreview = bytes;
+      });
     }
   }
 
@@ -43,7 +51,10 @@ class _RegisterEstabelecimentoPageState
           .ref()
           .child("estabelecimentos/$estabelecimentoId/foto.jpg");
 
-      await ref.putFile(_imagemSelecionada!);
+      await ref.putData(
+        _imagePreview!,
+        SettableMetadata(contentType: "image/jpeg"),
+      );
 
       return await ref.getDownloadURL();
     } catch (e) {
@@ -72,10 +83,9 @@ class _RegisterEstabelecimentoPageState
       );
 
       final service = EstabelecimentoService();
-
       final id = await service.criarEstabelecimento(estabelecimento);
 
-      if (_imagemSelecionada != null) {
+      if (_imagePreview != null) {
         final url = await _uploadImagem(id);
 
         if (url != null) {
@@ -92,13 +102,15 @@ class _RegisterEstabelecimentoPageState
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text("Estabelecimento cadastrado com sucesso!")),
+          content: Text("Estabelecimento cadastrado com sucesso!"),
+        ),
       );
 
       Navigator.pop(context);
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Erro: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro: $e")),
+      );
     } finally {
       setState(() => _isLoading = false);
     }
@@ -131,17 +143,20 @@ class _RegisterEstabelecimentoPageState
               GestureDetector(
                 onTap: _selecionarImagem,
                 child: Container(
-                  height: 180,
+                  height: 200,
                   decoration: BoxDecoration(
                     color: Colors.black26,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white30),
                   ),
-                  child: _imagemSelecionada != null
+                  child: _imagePreview != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
-                          child: Image.file(_imagemSelecionada!,
-                              fit: BoxFit.cover),
+                          child: Image.memory(
+                            _imagePreview!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          ),
                         )
                       : const Center(
                           child: Column(
@@ -187,7 +202,7 @@ class _RegisterEstabelecimentoPageState
                 style: const TextStyle(color: Colors.white),
                 decoration: _inputDecoration("Prazo para cancelamento (horas)"),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
               _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : SizedBox(
@@ -196,10 +211,10 @@ class _RegisterEstabelecimentoPageState
                         onPressed: _cadastrarEstabelecimento,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFF2598C),
-                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         child: const Text("Cadastrar Estabelecimento"),
                       ),

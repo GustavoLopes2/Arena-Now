@@ -24,7 +24,13 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
       backgroundColor: const Color(0xFF0E1A2F),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0E1A2F),
-        title: Text(nomeEstabelecimento),
+        elevation: 0,
+        title: Text(
+          nomeEstabelecimento,
+          style:
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -43,12 +49,15 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    const Icon(Icons.sports_tennis,
+                        color: Colors.white54, size: 70),
+                    const SizedBox(height: 20),
                     const Text(
-                      'Nenhuma quadra cadastrada.',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
+                      "Nenhuma quadra cadastrada.",
+                      style: TextStyle(color: Colors.white70, fontSize: 18),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
+                    ElevatedButton.icon(
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -59,15 +68,13 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
                           ),
                         );
                       },
+                      icon: const Icon(Icons.add),
+                      label: const Text("Cadastrar Quadra"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFFF2598C),
-                        foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 32, vertical: 16),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                            horizontal: 32, vertical: 14),
                       ),
-                      child: const Text('Cadastrar Quadra'),
                     ),
                   ],
                 ),
@@ -76,31 +83,33 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
 
             return Column(
               children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => VisualizarReservasEstabelecimentoPage(
-                          estabelecimentoId: estabelecimentoId,
-                          nomeEstabelecimento: nomeEstabelecimento,
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => VisualizarReservasEstabelecimentoPage(
+                            estabelecimentoId: estabelecimentoId,
+                            nomeEstabelecimento: nomeEstabelecimento,
+                          ),
                         ),
+                      );
+                    },
+                    icon: const Icon(Icons.list),
+                    label: const Text("Ver todas as reservas"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF2598C),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF2598C),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  icon: const Icon(Icons.list),
-                  label: const Text('Ver todas as reservas'),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 Expanded(
                   child: ListView.builder(
                     itemCount: quadras.length,
@@ -111,23 +120,37 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
                         margin: const EdgeInsets.only(bottom: 16),
                         decoration: BoxDecoration(
                           color: const Color(0xFF16243D),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.25),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                         child: ListTile(
-                          contentPadding: const EdgeInsets.all(12),
+                          contentPadding: const EdgeInsets.all(16),
                           title: Text(
                             q.nome,
                             style: const TextStyle(
                               color: Colors.white,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
                             ),
                           ),
-                          subtitle: Text(
-                            '${q.modalidade}\n${q.descricao}',
-                            style: const TextStyle(color: Colors.white70),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              "${_formatModalidade(q.modalidade)}\n${q.descricao}",
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                height: 1.4,
+                              ),
+                            ),
                           ),
-                          isThreeLine: true,
+                          trailing: const Icon(Icons.arrow_forward_ios,
+                              color: Colors.white54),
                           onTap: () {
                             Navigator.push(
                               context,
@@ -160,9 +183,20 @@ class VisualizarEstabelecimentoPage extends StatelessWidget {
             ),
           );
         },
-        label: const Text('Nova Quadra'),
+        label: const Text("Nova Quadra"),
         icon: const Icon(Icons.add),
       ),
     );
+  }
+
+  String _formatModalidade(String modalidade) {
+    switch (modalidade) {
+      case "BEACH_TENNIS":
+        return "Beach Tennis";
+      case "FUTEBOL_SOCIETY":
+        return "Futebol Society";
+      default:
+        return modalidade;
+    }
   }
 }

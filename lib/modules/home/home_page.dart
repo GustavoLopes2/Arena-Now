@@ -3,131 +3,175 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:arenanow/modules/admin/register/register_estabelecimento_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:arenanow/widgets/dashboard_header.dart';
 
 class HomePage extends StatelessWidget {
   HomePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFFF2598C),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const RegisterEstabelecimentoPage(),
+            ),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text("Novo Estabelecimento"),
+      ),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const DashboardHeader(),
-            const SizedBox(height: 8),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Text(
+                "Meus Estabelecimentos",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
             Expanded(
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: StreamBuilder<QuerySnapshot>(
-                  stream: FirebaseFirestore.instance
-                      .collection('estabelecimentos')
-                      .where('adminId', isEqualTo: user?.uid)
-                      .snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('estabelecimentos')
+                    .where('adminId', isEqualTo: user?.uid)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
 
-                    final docs = snapshot.data?.docs ?? [];
+                  final docs = snapshot.data!.docs;
 
-                    if (docs.isEmpty) {
-                      return Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text(
-                              'Bem-vindo!',
-                              style:
-                                  TextStyle(color: Colors.white, fontSize: 20),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          const RegisterEstabelecimentoPage()),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF2598C),
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 32, vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: const Text('Cadastrar Estabelecimento'),
-                            ),
-                          ],
+                  if (docs.isEmpty) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Text(
+                          "Você ainda não cadastrou nenhum estabelecimento.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70, fontSize: 16),
                         ),
-                      );
-                    }
+                      ),
+                    );
+                  }
 
-                    return ListView.builder(
-                      itemCount: docs.length,
-                      itemBuilder: (context, index) {
-                        final data = docs[index].data() as Map<String, dynamic>;
-                        final nome = data['nome'] ?? 'Sem nome';
-                        final descricao = data['descricao'] ?? '';
-                        final imagem = data['foto'] ?? '';
-                        final doc = docs[index];
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: docs.length,
+                    itemBuilder: (context, index) {
+                      final data = docs[index].data() as Map<String, dynamic>;
+                      final nome = data['nome'] ?? 'Sem nome';
+                      final descricao = data['descricao'] ?? '';
+                      final imagem = data['foto'] ?? '';
 
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 16),
+                      return GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => VisualizarEstabelecimentoPage(
+                                estabelecimentoId: docs[index].id,
+                                nomeEstabelecimento: nome,
+                              ),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          height: 180,
+                          margin: const EdgeInsets.only(bottom: 20),
                           decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(18),
                             color: const Color(0xFF16243D),
-                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.30),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(12),
-                            leading: ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: imagem.isNotEmpty
-                                  ? Image.network(imagem,
-                                      width: 60, height: 60, fit: BoxFit.cover)
-                                  : Container(
-                                      width: 60,
-                                      height: 60,
-                                      color: Colors.grey[700],
-                                      child: const Icon(Icons.image,
-                                          color: Colors.white),
-                                    ),
-                            ),
-                            title: Text(
-                              nome,
-                              style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16),
-                            ),
-                            subtitle: Text(
-                              descricao,
-                              style: const TextStyle(color: Colors.white70),
-                            ),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => VisualizarEstabelecimentoPage(
-                                    estabelecimentoId: doc.id,
-                                    nomeEstabelecimento: nome,
+                          child: Stack(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(18),
+                                child: imagem.isNotEmpty
+                                    ? Image.network(
+                                        imagem,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                        fit: BoxFit.cover,
+                                      )
+                                    : Container(
+                                        color: Colors.grey.shade800,
+                                        child: const Center(
+                                          child: Icon(Icons.image,
+                                              color: Colors.white54, size: 40),
+                                        ),
+                                      ),
+                              ),
+                              Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(18),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.bottomCenter,
+                                    end: Alignment.topCenter,
+                                    colors: [
+                                      Colors.black.withOpacity(0.55),
+                                      Colors.transparent,
+                                    ],
                                   ),
                                 ),
-                              );
-                            },
+                              ),
+                              Positioned(
+                                left: 16,
+                                right: 16,
+                                bottom: 16,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      nome,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.bold,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      descricao.isNotEmpty
+                                          ? descricao
+                                          : "Sem descrição",
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            ],
                           ),
-                        );
-                      },
-                    );
-                  },
-                ),
+                        ),
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ],
