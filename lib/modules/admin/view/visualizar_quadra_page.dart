@@ -152,6 +152,21 @@ class VisualizarQuadraPage extends StatelessWidget {
 
                   final agendas = snapshot.data!;
 
+                  agendas.sort((a, b) {
+                    final ordemSemana = [
+                      "DOMINGO",
+                      "SEGUNDA",
+                      "TERCA",
+                      "QUARTA",
+                      "QUINTA",
+                      "SEXTA",
+                      "SABADO",
+                    ];
+                    return ordemSemana
+                        .indexOf(a.diaSemana)
+                        .compareTo(ordemSemana.indexOf(b.diaSemana));
+                  });
+
                   if (agendas.isEmpty) {
                     return const Center(
                       child: Text(
@@ -160,6 +175,22 @@ class VisualizarQuadraPage extends StatelessWidget {
                       ),
                     );
                   }
+
+                  final ordemSemana = [
+                    "DOMINGO",
+                    "SEGUNDA",
+                    "TERCA",
+                    "QUARTA",
+                    "QUINTA",
+                    "SEXTA",
+                    "SABADO",
+                  ];
+
+                  agendas.sort(
+                    (a, b) =>
+                        ordemSemana.indexOf(a.diaSemana) -
+                        ordemSemana.indexOf(b.diaSemana),
+                  );
 
                   return ListView.builder(
                     itemCount: agendas.length,
@@ -184,8 +215,10 @@ class VisualizarQuadraPage extends StatelessWidget {
         children: [
           SpeedDialChild(
             backgroundColor: Colors.white,
+            labelBackgroundColor: Colors.white,
+            labelStyle: const TextStyle(color: Colors.black87),
             label: 'Adicionar horário',
-            child: const Icon(Icons.access_time),
+            child: const Icon(Icons.access_time, color: Colors.black87),
             onTap: () {
               Navigator.push(
                 context,
@@ -198,8 +231,10 @@ class VisualizarQuadraPage extends StatelessWidget {
           ),
           SpeedDialChild(
             backgroundColor: Colors.white,
+            labelBackgroundColor: Colors.white,
+            labelStyle: const TextStyle(color: Colors.black87),
             label: 'Adicionar bloqueio',
-            child: const Icon(Icons.block),
+            child: const Icon(Icons.block, color: Colors.black87),
             onTap: () {
               Navigator.push(
                 context,
@@ -211,8 +246,10 @@ class VisualizarQuadraPage extends StatelessWidget {
           ),
           SpeedDialChild(
             backgroundColor: Colors.white,
+            labelBackgroundColor: Colors.white,
+            labelStyle: const TextStyle(color: Colors.black87),
             label: 'Ver bloqueios',
-            child: const Icon(Icons.list),
+            child: const Icon(Icons.list, color: Colors.black87),
             onTap: () {
               Navigator.push(
                 context,
@@ -224,8 +261,10 @@ class VisualizarQuadraPage extends StatelessWidget {
           ),
           SpeedDialChild(
             backgroundColor: Colors.white,
+            labelBackgroundColor: Colors.white,
+            labelStyle: const TextStyle(color: Colors.black87),
             label: 'Ver reservas',
-            child: const Icon(Icons.event_note),
+            child: const Icon(Icons.event_note, color: Colors.black87),
             onTap: () {
               Navigator.push(
                 context,

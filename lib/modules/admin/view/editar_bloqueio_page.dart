@@ -28,6 +28,8 @@ class _EditarBloqueioPageState extends State<EditarBloqueioPage> {
   DateTime? dataInicio;
   DateTime? dataFim;
 
+  bool _isLoading = false;
+
   @override
   void initState() {
     super.initState();
@@ -42,33 +44,137 @@ class _EditarBloqueioPageState extends State<EditarBloqueioPage> {
     dataFim = widget.dadosBloqueio.dataFim;
   }
 
-  Future<void> _selecionarDataInicio() async {
-    final d = await showDatePicker(
+  Future<void> _selecionarData(bool isInicio) async {
+    final data = await showDatePicker(
       context: context,
-      initialDate: dataInicio ?? DateTime.now(),
+      initialDate: (isInicio ? dataInicio : dataFim) ?? DateTime.now(),
       firstDate: DateTime(2023),
       lastDate: DateTime(2030),
+      builder: (_, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFFF2598C),
+              onPrimary: Colors.white,
+              surface: Color(0xFF1E2D45),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
-    if (d != null) {
-      setState(() => dataInicio = d);
+
+    if (data != null) {
+      setState(() {
+        if (isInicio) {
+          dataInicio = data;
+          if (widget.dadosBloqueio.tipo == "PONTUAL") dataFim = null;
+        } else {
+          dataFim = data;
+        }
+      });
     }
   }
 
-  Future<void> _selecionarDataFim() async {
-    final d = await showDatePicker(
+  Future<void> _selecionarHora(TextEditingController controller) async {
+    final agora = TimeOfDay.now();
+
+    final selecionado = await showTimePicker(
       context: context,
-      initialDate: dataFim ?? (dataInicio ?? DateTime.now()),
-      firstDate: dataInicio ?? DateTime.now(),
-      lastDate: DateTime(2030),
+      initialTime: agora,
+      builder: (_, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            timePickerTheme: const TimePickerThemeData(
+              backgroundColor: Color(0xFF1E2D45),
+              dialHandColor: Color(0xFFF2598C),
+              hourMinuteColor: Colors.white12,
+            ),
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFFF2598C),
+              secondary: Color(0xFFF2598C),
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
-    if (d != null) {
-      setState(() => dataFim = d);
+
+    if (selecionado != null) {
+      controller.text =
+          "${selecionado.hour.toString().padLeft(2, '0')}:${selecionado.minute.toString().padLeft(2, '0')}";
+    }
+  }
+
+  InputDecoration _inputDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70),
+      filled: true,
+      fillColor: Colors.black26,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
+    );
+  }
+
+  bool _validarHorario(String inicio, String fim) {
+    if (!inicio.contains(":") || !fim.contains(":")) return false;
+
+    final i = _toMinutes(inicio);
+    final f = _toMinutes(fim);
+
+    return f > i;
+  }
+
+  int _toMinutes(String hhmm) {
+    final p = hhmm.split(':');
+    return int.parse(p[0]) * 60 + int.parse(p[1]);
+  }
+
+  Future<void> _salvar() async {
+    if (!_validarHorario(
+      horaInicioController.text.trim(),
+      horaFimController.text.trim(),
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text("Horário final deve ser maior que o inicial.")),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final atualizado = widget.dadosBloqueio.copyWith(
+        motivo: motivoController.text.trim(),
+        horaInicio: horaInicioController.text.trim(),
+        horaFim: horaFimController.text.trim(),
+        dataInicio: dataInicio,
+        dataFim: widget.dadosBloqueio.tipo == "PONTUAL" ? dataFim : null,
+      );
+
+      await BloqueioService().atualizarBloqueio(
+        widget.quadraId,
+        widget.bloqueioId,
+        atualizado,
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erro: $e")),
+      );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final service = BloqueioService();
+    const textStyle = TextStyle(color: Colors.white);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
@@ -76,89 +182,79 @@ class _EditarBloqueioPageState extends State<EditarBloqueioPage> {
         backgroundColor: const Color(0xFF0E1A2F),
         title: const Text("Editar Bloqueio"),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: ListView(
-          children: [
-            TextField(
-              controller: motivoController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Motivo",
-                labelStyle: TextStyle(color: Colors.white70),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: horaInicioController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Hora início (ex: 14:00)",
-                labelStyle: TextStyle(color: Colors.white70),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: horaFimController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: "Hora fim (ex: 16:00)",
-                labelStyle: TextStyle(color: Colors.white70),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (widget.dadosBloqueio.tipo == "PONTUAL") ...[
-              ElevatedButton(
-                onPressed: _selecionarDataInicio,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF2598C),
-                ),
-                child: Text(
-                  dataInicio == null
-                      ? "Selecionar data início"
-                      : "Início: ${DateFormat('dd/MM/yyyy').format(dataInicio!)}",
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          TextFormField(
+            controller: motivoController,
+            style: textStyle,
+            decoration: _inputDecoration("Motivo do bloqueio"),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: horaInicioController,
+                  readOnly: true,
+                  onTap: () => _selecionarHora(horaInicioController),
+                  style: textStyle,
+                  decoration: _inputDecoration("Início"),
                 ),
               ),
-              const SizedBox(height: 8),
-              ElevatedButton(
-                onPressed: _selecionarDataFim,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF2598C),
-                ),
-                child: Text(
-                  dataFim == null
-                      ? "Selecionar data fim"
-                      : "Fim: ${DateFormat('dd/MM/yyyy').format(dataFim!)}",
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextFormField(
+                  controller: horaFimController,
+                  readOnly: true,
+                  onTap: () => _selecionarHora(horaFimController),
+                  style: textStyle,
+                  decoration: _inputDecoration("Fim"),
                 ),
               ),
             ],
-            const SizedBox(height: 24),
+          ),
+          const SizedBox(height: 20),
+          if (widget.dadosBloqueio.tipo == "PONTUAL") ...[
             ElevatedButton(
-              onPressed: () async {
-                final atualizado = widget.dadosBloqueio.copyWith(
-                  motivo: motivoController.text.trim(),
-                  horaInicio: horaInicioController.text.trim(),
-                  horaFim: horaFimController.text.trim(),
-                  dataInicio: dataInicio,
-                  dataFim: dataFim,
-                );
-
-                await service.atualizarBloqueio(
-                  widget.quadraId,
-                  widget.bloqueioId,
-                  atualizado,
-                );
-
-                Navigator.pop(context);
-              },
+              onPressed: () => _selecionarData(true),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF2598C),
-                padding: const EdgeInsets.all(16),
               ),
-              child: const Text("Salvar Alterações"),
+              child: Text(
+                dataInicio == null
+                    ? "Selecionar data início"
+                    : "Início: ${DateFormat('dd/MM/yyyy').format(dataInicio!)}",
+              ),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () => _selecionarData(false),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF2598C),
+              ),
+              child: Text(
+                dataFim == null
+                    ? "Selecionar data fim"
+                    : "Fim: ${DateFormat('dd/MM/yyyy').format(dataFim!)}",
+              ),
             ),
           ],
-        ),
+          const SizedBox(height: 30),
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : ElevatedButton(
+                  onPressed: _salvar,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFF2598C),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Text("Salvar Alterações"),
+                ),
+        ],
       ),
     );
   }

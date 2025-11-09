@@ -1,8 +1,8 @@
+import 'package:arenanow/modules/admin/admin_root_page.dart';
 import 'package:arenanow/modules/user/view/user_root_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../home/home_page.dart';
 import 'login_page.dart';
 
 class AuthGate extends StatelessWidget {
@@ -36,7 +36,7 @@ class AuthGate extends StatelessWidget {
               final role = data['role'];
 
               if (role == 'admin') {
-                return HomePage();
+                return const AdminRootPage();
               } else {
                 return const UserRootPage();
               }

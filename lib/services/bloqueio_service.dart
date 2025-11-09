@@ -60,57 +60,84 @@ class BloqueioService {
         .update(b.toMap());
   }
 
-  Future<List<Map<String, dynamic>>> buscarBloqueios(String quadraId) async {
+  Future<List<BloqueioQuadra>> buscarBloqueios(String quadraId) async {
     final snap = await _db
         .collection('quadras')
         .doc(quadraId)
         .collection('bloqueios')
         .get();
 
-    return snap.docs.map((d) => d.data()).toList();
+    return snap.docs
+        .map((doc) => BloqueioQuadra.fromDocument(doc, quadraId: quadraId))
+        .toList();
   }
 
   Set<String> gerarBloqueios(
-    List<Map<String, dynamic>> bloqueios,
-    String diaSemana,
+    List<BloqueioQuadra> bloqueios,
+    String diaSemanaAtual,
     DateTime diaSelecionado,
     int intervalo,
     DateTime Function(String) toTime,
     String Function(DateTime) formatTime,
   ) {
-    final result = <String>{};
+    final bloqueados = <String>{};
 
     for (var b in bloqueios) {
-      final tipo = b['tipo'];
-      final horaInicio = b['horaInicio'];
-      final horaFim = b['horaFim'];
+      if (b.tipo == "PONTUAL") {
+        if (b.dataInicio != null && b.dataFim != null) {
+          final dentroDoIntervalo = !diaSelecionado.isBefore(b.dataInicio!) &&
+              !diaSelecionado.isAfter(b.dataFim!);
 
-      final dataInicio = (b['dataInicio'] as Timestamp?)?.toDate();
-      final dataFim = (b['dataFim'] as Timestamp?)?.toDate();
+          if (dentroDoIntervalo) {
+            final inicio = toTime(b.horaInicio);
+            final fim = toTime(b.horaFim);
 
-      bool bloqueia = false;
-
-      if (tipo == 'RECORRENTE' && b['diaSemana'] == diaSemana) {
-        bloqueia = true;
-      } else if (tipo == 'PONTUAL' &&
-          dataInicio != null &&
-          dataFim != null &&
-          !diaSelecionado.isBefore(dataInicio) &&
-          !diaSelecionado.isAfter(dataFim)) {
-        bloqueia = true;
+            DateTime atual = inicio;
+            while (atual.isBefore(fim)) {
+              bloqueados.add(formatTime(atual));
+              atual = atual.add(Duration(minutes: intervalo));
+            }
+          }
+        }
       }
 
-      if (bloqueia) {
-        var atual = toTime(horaInicio);
-        final fim = toTime(horaFim);
+      if (b.tipo == "RECORRENTE") {
+        final diaPt = mapDiaInglesParaPortugues(b.diaSemana!);
 
-        while (atual.isBefore(fim)) {
-          result.add(formatTime(atual));
-          atual = atual.add(Duration(minutes: intervalo));
+        if (diaPt == diaSemanaAtual) {
+          final inicio = toTime(b.horaInicio);
+          final fim = toTime(b.horaFim);
+
+          DateTime atual = inicio;
+          while (atual.isBefore(fim)) {
+            bloqueados.add(formatTime(atual));
+            atual = atual.add(Duration(minutes: intervalo));
+          }
         }
       }
     }
 
-    return result;
+    return bloqueados;
+  }
+
+  String mapDiaInglesParaPortugues(String diaIng) {
+    switch (diaIng.toUpperCase()) {
+      case "MONDAY":
+        return "SEGUNDA";
+      case "TUESDAY":
+        return "TERCA";
+      case "WEDNESDAY":
+        return "QUARTA";
+      case "THURSDAY":
+        return "QUINTA";
+      case "FRIDAY":
+        return "SEXTA";
+      case "SATURDAY":
+        return "SABADO";
+      case "SUNDAY":
+        return "DOMINGO";
+      default:
+        return "";
+    }
   }
 }

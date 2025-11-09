@@ -33,11 +33,22 @@ class _RegisterBloqueioPageState extends State<RegisterBloqueioPage> {
     final data = await showDatePicker(
       context: context,
       initialDate: isInicio ? DateTime.now() : _dataInicio ?? DateTime.now(),
-      firstDate: isInicio
-          ? DateTime.now()
-          : _dataInicio ?? DateTime.now().subtract(const Duration(days: 0)),
+      firstDate: DateTime.now(),
       lastDate: DateTime(2030),
       helpText: isInicio ? "Selecionar data inicial" : "Selecionar data final",
+      builder: (_, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFFF2598C),
+              onPrimary: Colors.white,
+              surface: Color(0xFF1E2D45),
+              onSurface: Colors.white,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
 
     if (data != null) {
@@ -52,11 +63,42 @@ class _RegisterBloqueioPageState extends State<RegisterBloqueioPage> {
     }
   }
 
+  Future<void> _selecionarHora(TextEditingController controller) async {
+    final agora = TimeOfDay.now();
+
+    final selecionado = await showTimePicker(
+      context: context,
+      initialTime: agora,
+      helpText: "Selecionar horário",
+      builder: (_, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: const ColorScheme.dark(
+              primary: Color(0xFFF2598C),
+              secondary: Color(0xFFF2598C),
+            ),
+            timePickerTheme: const TimePickerThemeData(
+              backgroundColor: Color(0xFF1E2D45),
+              dialHandColor: Color(0xFFF2598C),
+              hourMinuteColor: Colors.white10,
+              dayPeriodColor: Colors.white10,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (selecionado != null) {
+      final h = selecionado.hour.toString().padLeft(2, '0');
+      final m = selecionado.minute.toString().padLeft(2, '0');
+      controller.text = "$h:$m";
+    }
+  }
+
   bool _validarHorario(String inicio, String fim) {
     if (!inicio.contains(":") || !fim.contains(":")) return false;
-    final i = _toMinutes(inicio);
-    final f = _toMinutes(fim);
-    return f > i;
+    return _toMinutes(fim) > _toMinutes(inicio);
   }
 
   int _toMinutes(String hhmm) {
@@ -69,14 +111,14 @@ class _RegisterBloqueioPageState extends State<RegisterBloqueioPage> {
 
     if (_dataInicio == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Selecione a data inicial")),
+        const SnackBar(content: Text("Selecione a data inicial.")),
       );
       return;
     }
 
     if (_tipo == "PONTUAL" && _dataFim == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Selecione a data final")),
+        const SnackBar(content: Text("Selecione a data final.")),
       );
       return;
     }
@@ -87,8 +129,7 @@ class _RegisterBloqueioPageState extends State<RegisterBloqueioPage> {
     )) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("Horário final deve ser maior que o inicial."),
-        ),
+            content: Text("Horário final deve ser maior que o inicial.")),
       );
       return;
     }
@@ -147,16 +188,18 @@ class _RegisterBloqueioPageState extends State<RegisterBloqueioPage> {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70),
       filled: true,
       fillColor: Colors.black26,
-      labelStyle: const TextStyle(color: Colors.white70),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final textStyle = const TextStyle(color: Colors.white);
+    const textStyle = TextStyle(color: Colors.white);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0E1A2F),
@@ -176,18 +219,13 @@ class _RegisterBloqueioPageState extends State<RegisterBloqueioPage> {
                 decoration: _inputDecoration("Tipo de bloqueio"),
                 style: textStyle,
                 items: const [
+                  DropdownMenuItem(value: "PONTUAL", child: Text("Pontual")),
                   DropdownMenuItem(
-                    value: "PONTUAL",
-                    child: Text("Pontual"),
-                  ),
-                  DropdownMenuItem(
-                    value: "RECORRENTE",
-                    child: Text("Recorrente (semanal)"),
-                  ),
+                      value: "RECORRENTE", child: Text("Recorrente (semanal)")),
                 ],
                 onChanged: (v) => setState(() => _tipo = v!),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               ElevatedButton(
                 onPressed: () => _selecionarData(true),
                 style: ElevatedButton.styleFrom(
@@ -200,7 +238,7 @@ class _RegisterBloqueioPageState extends State<RegisterBloqueioPage> {
                 ),
               ),
               if (_tipo == "PONTUAL") ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 ElevatedButton(
                   onPressed: () => _selecionarData(false),
                   style: ElevatedButton.styleFrom(
@@ -213,37 +251,36 @@ class _RegisterBloqueioPageState extends State<RegisterBloqueioPage> {
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(
                     child: TextFormField(
                       controller: _horaInicioController,
+                      readOnly: true,
+                      onTap: () => _selecionarHora(_horaInicioController),
                       style: textStyle,
-                      decoration: _inputDecoration("Início (ex: 15:00)"),
-                      validator: (v) =>
-                          v!.isEmpty ? "Informe o horário inicial" : null,
+                      decoration: _inputDecoration("Início"),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: TextFormField(
                       controller: _horaFimController,
+                      readOnly: true,
+                      onTap: () => _selecionarHora(_horaFimController),
                       style: textStyle,
-                      decoration: _inputDecoration("Fim (ex: 17:00)"),
-                      validator: (v) =>
-                          v!.isEmpty ? "Informe o horário final" : null,
+                      decoration: _inputDecoration("Fim"),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _motivoController,
                 style: textStyle,
                 decoration: _inputDecoration("Motivo do bloqueio"),
-                validator: (v) =>
-                    v!.isEmpty ? "Informe o motivo do bloqueio" : null,
+                validator: (v) => v!.isEmpty ? "Informe o motivo" : null,
               ),
               const SizedBox(height: 30),
               _isLoading
@@ -254,12 +291,10 @@ class _RegisterBloqueioPageState extends State<RegisterBloqueioPage> {
                         backgroundColor: const Color(0xFFF2598C),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14)),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
-                      child: const Text(
-                        "Cadastrar Bloqueio",
-                        style: TextStyle(fontSize: 16),
-                      ),
+                      child: const Text("Cadastrar Bloqueio"),
                     ),
             ],
           ),

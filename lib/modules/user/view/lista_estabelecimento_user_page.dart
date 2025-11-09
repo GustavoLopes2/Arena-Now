@@ -54,21 +54,39 @@ class ListaEstabelecimentosUserPage extends StatelessWidget {
                       final nome = data['nome'] ?? 'Sem nome';
                       final imagem = data['foto'] ?? '';
                       final modalidade = data['modalidade'] ?? 'Esportes';
-                      final qtdQuadras = data['qtdQuadras']?.toString() ?? '?';
 
-                      return _buildEstabelecimentoCard(
-                        context: context,
-                        nome: nome,
-                        imagem: imagem,
-                        modalidade: modalidade,
-                        qtdQuadras: qtdQuadras,
-                        onTap: () {
-                          UserNavigator.push(
-                            context,
-                            VisualizarQuadraUserPage(
-                              estabelecimentoId: id,
-                              nomeEstabelecimento: nome,
-                            ),
+                      return StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('quadras')
+                            .where('estabelecimentoId', isEqualTo: id)
+                            .snapshots(),
+                        builder: (context, quadrasSnap) {
+                          if (!quadrasSnap.hasData) {
+                            return const Padding(
+                              padding: EdgeInsets.all(20),
+                              child: Center(
+                                child: CircularProgressIndicator(),
+                              ),
+                            );
+                          }
+
+                          final qtdQuadras = quadrasSnap.data!.docs.length;
+
+                          return _buildEstabelecimentoCard(
+                            context: context,
+                            nome: nome,
+                            imagem: imagem,
+                            modalidade: modalidade,
+                            qtdQuadras: qtdQuadras.toString(),
+                            onTap: () {
+                              UserNavigator.push(
+                                context,
+                                VisualizarQuadraUserPage(
+                                  estabelecimentoId: id,
+                                  nomeEstabelecimento: nome,
+                                ),
+                              );
+                            },
                           );
                         },
                       );

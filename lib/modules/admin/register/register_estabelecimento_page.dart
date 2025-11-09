@@ -6,6 +6,7 @@ import 'package:arenanow/models/estabelecimento.dart';
 import 'package:arenanow/models/foto_estabelecimento.dart';
 import 'package:arenanow/services/estabelecimento_service.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterEstabelecimentoPage extends StatefulWidget {
   const RegisterEstabelecimentoPage({super.key});
@@ -23,11 +24,9 @@ class _RegisterEstabelecimentoPageState
   final _descricaoController = TextEditingController();
   final _prazoCancelamentoController = TextEditingController();
 
-  XFile? _imagemSelecionada;
   Uint8List? _imagePreview;
 
   bool _isLoading = false;
-
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _selecionarImagem() async {
@@ -37,14 +36,13 @@ class _RegisterEstabelecimentoPageState
       final bytes = await picked.readAsBytes();
 
       setState(() {
-        _imagemSelecionada = picked;
         _imagePreview = bytes;
       });
     }
   }
 
   Future<String?> _uploadImagem(String estabelecimentoId) async {
-    if (_imagemSelecionada == null) return null;
+    if (_imagePreview == null) return null;
 
     try {
       final ref = FirebaseStorage.instance
@@ -97,6 +95,11 @@ class _RegisterEstabelecimentoPageState
               url: url,
             ),
           );
+
+          await FirebaseFirestore.instance
+              .collection("estabelecimentos")
+              .doc(id)
+              .update({"foto": url});
         }
       }
 
