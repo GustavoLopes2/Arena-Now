@@ -38,7 +38,7 @@ android {
         applicationId = "com.example.arenanow"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdk = flutter.minSdkVersion
+        minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
@@ -54,8 +54,10 @@ android {
 }
 
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:33.15.0')
-    implementation 'com.google.firebase:firebase-analytics'
+    // Para evitar conflito de Kotlin com as libs de measurement/analytics,
+    // vamos remover o Analytics nativo por enquanto.
+    // implementation platform('com.google.firebase:firebase-bom:33.15.0')
+    // implementation 'com.google.firebase:firebase-analytics'
 }
 
 flutter {
